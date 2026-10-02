@@ -1,0 +1,65 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../modules/auth.php';
+require_once __DIR__ . '/../modules/affiliate-groups.php';
+require_once __DIR__ . '/../modules/rewards.php';
+require_login(); start_app_session();
+if (empty($_SESSION['reward_csrf'])) $_SESSION['reward_csrf'] = bin2hex(random_bytes(32));
+$csrf = (string)$_SESSION['reward_csrf'];
+$groups = array_column(affiliate_group_list(), 'name');
+$error = ''; $flash = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_role(['owner','admin','manager']);
+    if (!hash_equals($csrf, (string)($_POST['csrf'] ?? ''))) { http_response_code(403); exit('Sessão expirada. Atualize a página.'); }
+    $action = (string)($_POST['action'] ?? '');
+    if ($action === 'deliver') {
+        $stmt = app_db()->prepare("UPDATE affiliate_reward_awards SET status='delivered',delivered_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=? AND status='unlocked'");
+        $stmt->execute([tenant_id(),(string)($_POST['award_id'] ?? '')]);
+        header('Location: rewards.php?message=delivered'); exit;
+    }
+    if ($action === 'toggle') {
+        $stmt = app_db()->prepare('UPDATE affiliate_rewards SET active=IF(active=1,0,1) WHERE tenant_id=? AND id=?');
+        $stmt->execute([tenant_id(),(string)($_POST['reward_id'] ?? '')]);
+        reward_evaluate_rules();
+        header('Location: rewards.php?message=updated'); exit;
+    }
+    if ($action === 'create') {
+        $title = trim((string)($_POST['title'] ?? ''));
+        $metric = (string)($_POST['metric'] ?? 'revenue');
+        $target = filter_var($_POST['target'] ?? '', FILTER_VALIDATE_FLOAT);
+        $period = (string)($_POST['period_type'] ?? 'monthly');
+        $group = (string)($_POST['affiliate_group'] ?? 'all');
+        $type = (string)($_POST['reward_type'] ?? 'cash');
+        $value = trim((string)($_POST['reward_value'] ?? ''));
+        $titleLength = preg_match_all('/./us', $title);
+        $numericValue = in_array($type,['cash','commission'],true) ? filter_var($value,FILTER_VALIDATE_FLOAT) : null;
+        $validValue = in_array($type,['cash','commission'],true) ? ($numericValue !== false && $numericValue !== null && $numericValue > 0 && ($type !== 'commission' || $numericValue <= 100)) : ($value !== '' && strlen($value) <= 255);
+        if ($title === '' || $titleLength === false || $titleLength > 120 || !in_array($metric,['revenue','orders','new_customers'],true) || $target === false || $target <= 0 || (in_array($metric,['orders','new_customers'],true) && floor((float)$target) !== (float)$target) || !in_array($period,['weekly','monthly','all_time'],true) || ($group !== 'all' && !in_array($group,$groups,true)) || !in_array($type,['cash','commission','badge','vip','product','custom'],true) || !$validValue) {
+            $error = 'Confira o nome, a meta e os dados da recompensa.';
+        } else {
+            $id = new_id('rwd');
+            app_db()->prepare('INSERT INTO affiliate_rewards(id,tenant_id,title,metric,target,period_type,affiliate_group,reward_type,reward_value,active) VALUES(?,?,?,?,?,?,?,?,?,1)')->execute([$id,tenant_id(),$title,$metric,(float)$target,$period,$group,$type,in_array($type,['cash','commission'],true)?number_format((float)$numericValue,2,'.',''):$value]);
+            reward_evaluate_rules();
+            header('Location: rewards.php?message=created'); exit;
+        }
+    }
+}
+$flash = match((string)($_GET['message'] ?? '')) {'created'=>'Recompensa criada; afiliados que já atingiram a meta foram registrados.','updated'=>'Status da regra atualizado.','delivered'=>'Recompensa marcada como entregue.','default'=>''};
+$rules = reward_rule_list();
+$awards = reward_award_list();
+$ruleTypes = ['cash'=>'Bônus em dinheiro','commission'=>'Bônus de comissão','badge'=>'Badge especial','vip'=>'Acesso VIP','product'=>'Produto gratuito','custom'=>'Outro benefício'];
+$metrics = ['revenue'=>'Faturamento','orders'=>'Vendas','new_customers'=>'Clientes novos'];
+$periods = ['weekly'=>'Semanal','monthly'=>'Mensal','all_time'=>'Acumulado'];
+function rw(mixed $value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+function reward_metric_display(string $metric, mixed $value): string { return $metric==='revenue'?'R$ '.number_format((float)$value,2,',','.'):number_format((float)$value,0,',','.'); }
+function reward_benefit_display(string $type, string $value): string { if($type==='cash')return 'R$ '.number_format((float)$value,2,',','.');if($type==='commission')return number_format((float)$value,2,',','.').'%';return $value; }
+?>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Recompensas — Vértice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/rewards.css"><script src="assets/js/rewards.js" defer></script><link rel="stylesheet" href="assets/css/app-theme.css?v=2"></head><body class="app-shell">
+<header class="topbar"><a class="brand" href="dashboard.php"><span class="brand-mark">v</span> vértice<span class="brand-dot">.</span></a><nav class="main-nav"><a href="dashboard.php">Visão geral</a><a href="affiliates.php">Afiliados</a><a href="sales.php">Vendas</a><a href="campaigns.php">Metas</a><a href="ranking.php">Ranking</a><a class="selected" href="rewards.php">Recompensas</a><a href="announcements.php">Comunicados</a><?php if(in_array(current_user()['role']??'', ['owner','admin'], true)): ?><a href="team.php">Equipe</a><a href="integrations.php">Integrações</a><?php endif; ?></nav><div class="top-actions"><span><?= rw(current_user()['name'] ?? '') ?></span><a href="login.php?logout=1">Sair</a></div></header>
+<main class="page reward-page"><div class="crumb"><a href="dashboard.php">Workspace</a> / Recompensas</div><section class="welcome"><div><span class="eyebrow">RECONHEÇA QUEM FAZ ACONTECER</span><h1>Recompensas</h1><p>Crie benefícios por desempenho e acompanhe os afiliados que desbloquearam cada meta.</p></div></section>
+<?php if($flash): ?><div class="notice success"><?= rw($flash) ?></div><?php endif; ?><?php if($error): ?><div class="notice error"><?= rw($error) ?></div><?php endif; ?>
+<div class="reward-layout"><section class="panel reward-create"><div class="section-heading"><div><h2>Nova recompensa</h2><p>As metas são avaliadas por afiliado e por período.</p></div></div><?php if(can_manage_workspace()): ?><form method="post"><input type="hidden" name="csrf" value="<?= rw($csrf) ?>"><input type="hidden" name="action" value="create"><label>Nome da recompensa<input name="title" maxlength="120" placeholder="Ex.: Campeão do mês" value="<?= rw($_POST['title']??'') ?>" required></label><div class="reward-fields"><label>Métrica<select name="metric"><?php foreach($metrics as $key=>$label): ?><option value="<?= rw($key) ?>" <?= ($_POST['metric']??'revenue')===$key?'selected':'' ?>><?= rw($label) ?></option><?php endforeach; ?></select></label><label>Meta<input type="number" name="target" min="1" step="0.01" value="<?= rw($_POST['target']??'') ?>" placeholder="10000" required></label><label>Período<select name="period_type"><?php foreach($periods as $key=>$label): ?><option value="<?= rw($key) ?>" <?= ($_POST['period_type']??'monthly')===$key?'selected':'' ?>><?= rw($label) ?></option><?php endforeach; ?></select></label><label>Grupo<select name="affiliate_group"><option value="all">Todos os grupos</option><?php foreach($groups as $name): ?><option value="<?= rw($name) ?>" <?= ($_POST['affiliate_group']??'all')===$name?'selected':'' ?>><?= rw($name) ?></option><?php endforeach; ?></select></label></div><div class="reward-fields reward-fields-bottom"><label>Tipo de benefício<select name="reward_type"><?php foreach($ruleTypes as $key=>$label): ?><option value="<?= rw($key) ?>" <?= ($_POST['reward_type']??'cash')===$key?'selected':'' ?>><?= rw($label) ?></option><?php endforeach; ?></select></label><label>Valor ou descrição<input name="reward_value" maxlength="255" value="<?= rw($_POST['reward_value']??'') ?>" placeholder="100,00 ou acesso ao grupo Elite" required><small>Para bônus em dinheiro ou comissão, informe o valor numérico. Comissão aceita até 100%.</small></label></div><button class="button primary" type="submit">Criar regra de recompensa</button></form><?php else: ?><p class="readonly">Seu perfil pode consultar recompensas, mas não criar regras.</p><?php endif; ?></section>
+<aside class="panel reward-summary"><span class="summary-icon">✦</span><h2>Como funciona</h2><p>Pedidos aprovados das integrações atualizam o progresso. Quando o afiliado atinge a meta, a recompensa aparece automaticamente nesta página.</p><div><b><?= count(array_filter($awards,static fn($award)=>$award['status']==='unlocked')) ?></b><span>aguardando entrega</span></div><div><b><?= count(array_filter($awards,static fn($award)=>$award['status']==='delivered')) ?></b><span>já entregues</span></div><small>Bônus em dinheiro e comissão precisam ser pagos ou aplicados manualmente pelo produtor. A plataforma registra a entrega, mas não movimenta valores.</small></aside></div>
+<section class="panel rules-panel"><div class="section-heading"><div><h2>Regras de recompensa</h2><p><?= count($rules) ?> regra<?= count($rules)===1?'':'s' ?> configurada<?= count($rules)===1?'':'s' ?></p></div></div><?php if(!$rules): ?><div class="empty-reward"><b>Nenhuma regra criada</b><p>Comece oferecendo um bônus ou benefício para uma meta de vendas.</p></div><?php else: ?><div class="rule-grid"><?php foreach($rules as $rule): ?><article class="rule-card"><div class="rule-card-top"><span class="rule-icon">🎁</span><span class="rule-status <?= $rule['active']?'active':'paused' ?>"><?= $rule['active']?'Ativa':'Pausada' ?></span></div><h3><?= rw($rule['title']) ?></h3><p><?= rw(reward_metric_display($rule['metric'], $rule['target'])) ?> <?= rw(strtolower($metrics[$rule['metric']]??$rule['metric'])) ?> · <?= rw($periods[$rule['period_type']]??$rule['period_type']) ?> · <?= $rule['affiliate_group']==='all'?'Todos os grupos':'Grupo '.rw($rule['affiliate_group']) ?></p><div class="benefit"><b><?= rw($ruleTypes[$rule['reward_type']]??$rule['reward_type']) ?></b><span><?= rw(reward_benefit_display($rule['reward_type'],$rule['reward_value'])) ?></span></div><?php if(can_manage_workspace()): ?><form method="post"><input type="hidden" name="csrf" value="<?= rw($csrf) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="reward_id" value="<?= rw($rule['id']) ?>"><button class="text-action" type="submit"><?= $rule['active']?'Pausar regra':'Ativar regra' ?></button></form><?php endif; ?></article><?php endforeach; ?></div><?php endif; ?></section>
+<section class="panel awards-panel"><div class="section-heading"><div><h2>Recompensas desbloqueadas</h2><p>Até 100 registros mais recentes</p></div></div><?php if(!$awards): ?><div class="empty-reward"><b>Nenhuma recompensa desbloqueada ainda</b><p>Quando uma meta for atingida, o registro aparece aqui.</p></div><?php else: ?><div class="award-list"><?php foreach($awards as $award): ?><article class="award-row"><span class="award-icon">🏆</span><span class="award-person"><b><?= rw($award['affiliate_name']) ?></b><small><?= rw($award['affiliate_group']?:'Sem grupo') ?> · <?= rw($award['title']) ?></small></span><span class="award-target"><b><?= rw(reward_metric_display($award['metric'],$award['metric_value'])) ?></b><small>meta <?= rw(reward_metric_display($award['metric'],$award['target'])) ?></small></span><span class="award-benefit"><?= rw($ruleTypes[$award['reward_type']]??$award['reward_type']) ?><b><?= rw(reward_benefit_display($award['reward_type'],$award['reward_value'])) ?></b></span><span class="award-state <?= $award['status']==='delivered'?'done':'waiting' ?>"><?= $award['status']==='delivered'?'Entregue':'Desbloqueada' ?></span><?php if(can_manage_workspace()&&$award['status']==='unlocked'): ?><form method="post"><input type="hidden" name="csrf" value="<?= rw($csrf) ?>"><input type="hidden" name="action" value="deliver"><input type="hidden" name="award_id" value="<?= rw($award['id']) ?>"><button class="button" type="submit">Marcar entregue</button></form><?php endif; ?></article><?php endforeach; ?></div><?php endif; ?></section>
+</main></body></html>

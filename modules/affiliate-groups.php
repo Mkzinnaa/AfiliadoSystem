@@ -52,6 +52,7 @@ function affiliate_group_save(string $id, string $name, string $description): vo
         if ($oldName !== $name) {
             $pdo->prepare('UPDATE affiliates SET affiliate_group=? WHERE tenant_id=? AND affiliate_group=?')->execute([$name, $tenant, $oldName]);
             $pdo->prepare('UPDATE campaigns SET affiliate_group=? WHERE tenant_id=? AND affiliate_group=?')->execute([$name, $tenant, $oldName]);
+            $pdo->prepare('UPDATE affiliate_rewards SET affiliate_group=? WHERE tenant_id=? AND affiliate_group=?')->execute([$name, $tenant, $oldName]);
         }
         $pdo->commit();
     } catch (Throwable $error) {
@@ -69,8 +70,8 @@ function affiliate_group_delete(string $id): void
     $find->execute([$tenant, $id]);
     $name = $find->fetchColumn();
     if ($name === false) throw new DomainException('Grupo não encontrado neste espaço.');
-    $used = $pdo->prepare('SELECT (SELECT COUNT(*) FROM affiliates WHERE tenant_id=? AND affiliate_group=?) + (SELECT COUNT(*) FROM campaigns WHERE tenant_id=? AND affiliate_group=?)');
-    $used->execute([$tenant, $name, $tenant, $name]);
-    if ((int)$used->fetchColumn() > 0) throw new DomainException('Este grupo ainda está associado a afiliados ou campanhas. Transfira-os para outro grupo antes de excluir.');
+    $used = $pdo->prepare('SELECT (SELECT COUNT(*) FROM affiliates WHERE tenant_id=? AND affiliate_group=?) + (SELECT COUNT(*) FROM campaigns WHERE tenant_id=? AND affiliate_group=?) + (SELECT COUNT(*) FROM affiliate_rewards WHERE tenant_id=? AND affiliate_group=?)');
+    $used->execute([$tenant, $name, $tenant, $name, $tenant, $name]);
+    if ((int)$used->fetchColumn() > 0) throw new DomainException('Este grupo ainda está associado a afiliados, campanhas ou recompensas. Transfira os itens para outro grupo antes de excluir.');
     $pdo->prepare('DELETE FROM affiliate_groups WHERE tenant_id=? AND id=?')->execute([$tenant, $id]);
 }

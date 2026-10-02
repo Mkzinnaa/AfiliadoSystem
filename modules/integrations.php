@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/tenancy.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/rewards.php';
 
 function integration_encryption_key(): string
 {
@@ -85,11 +86,18 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
         $duplicate=$pdo->prepare('SELECT id FROM integration_events WHERE connection_id=? AND external_event_id=?');$duplicate->execute([$connectionId,$eventId]);
         if($duplicate->fetchColumn()){$pdo->commit();return ['duplicate'=>true,'message'=>'Evento já processado.'];}
         $affiliateId=null;$storedAffiliateCode=$affiliateCode;if($affiliateCode!==''||$affiliateEmail!==''||$hotmartAffiliateCode!==''){$affiliate=$pdo->prepare('SELECT id,code FROM affiliates WHERE tenant_id=? AND (LOWER(code)=LOWER(?) OR LOWER(email)=LOWER(?) OR LOWER(hotmart_code)=LOWER(?)) LIMIT 1');$affiliate->execute([$connection['tenant_id'],$affiliateCode,$affiliateEmail,$hotmartAffiliateCode]);$matched=$affiliate->fetch();if($matched){$affiliateId=(string)$matched['id'];$storedAffiliateCode=(string)$matched['code'];}elseif($affiliateEmail!=='')$storedAffiliateCode='';}
+        if ($affiliateId === null) {
+            $existingSale = $pdo->prepare('SELECT affiliate_id,affiliate_code FROM sales_orders WHERE connection_id=? AND external_order_id=? LIMIT 1');
+            $existingSale->execute([$connectionId,$externalId]);
+            $priorAttribution = $existingSale->fetch();
+            if ($priorAttribution && $priorAttribution['affiliate_id'] !== null) { $affiliateId=(string)$priorAttribution['affiliate_id']; $storedAffiliateCode=(string)$priorAttribution['affiliate_code']; }
+        }
         $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,customer_hash,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),customer_hash=COALESCE(VALUES(customer_hash),customer_hash),amount_cents=VALUES(amount_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
         $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$affiliateId,$storedAffiliateCode,$customerHash,(int)round((float)$amount*100),$currency,$status,$saleDate]);
         $pdo->prepare('INSERT INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,?,?)')->execute([new_id('evt'),$connection['tenant_id'],$connectionId,$eventId,$eventType,'processed',($affiliateCode!==''||$affiliateEmail!==''||$hotmartAffiliateCode!=='')&&$affiliateId===null?'Pedido recebido sem correspondência de afiliado.':'']);
         $pdo->prepare('UPDATE integration_connections SET last_event_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$connectionId]);
         $refresh=$pdo->prepare("UPDATE affiliates SET sales=COALESCE((SELECT SUM(amount_cents)/100.0 FROM sales_orders WHERE affiliate_id=affiliates.id AND tenant_id=affiliates.tenant_id AND status='approved'),0),orders=(SELECT COUNT(*) FROM sales_orders WHERE affiliate_id=affiliates.id AND tenant_id=affiliates.tenant_id AND status='approved') WHERE tenant_id=? AND id IN (SELECT affiliate_id FROM sales_orders WHERE connection_id=? AND affiliate_id IS NOT NULL)");$refresh->execute([$connection['tenant_id'],$connectionId]);
+        if ($affiliateId !== null) reward_evaluate_rules($affiliateId,(string)$connection['tenant_id']);
         $pdo->commit();return ['duplicate'=>false,'message'=>'Evento recebido.'];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
