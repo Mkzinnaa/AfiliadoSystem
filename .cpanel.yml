@@ -1,0 +1,4 @@
+---
+deployment:
+  tasks:
+    - /bin/bash /home/horizon1/repositories/AfiliadoSystem/scripts/deploy/cpanel-deploy.sh
