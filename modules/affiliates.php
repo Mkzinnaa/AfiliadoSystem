@@ -90,8 +90,15 @@ function affiliate_apply(string $workspaceSlug, string $name, string $email): vo
         if (!$used->fetchColumn()) break;
         $code = $base . '-' . $suffix;
     }
+    $groupQuery = $pdo->prepare("SELECT name FROM affiliate_groups WHERE tenant_id=? ORDER BY CASE WHEN name='Novos afiliados' THEN 0 ELSE 1 END,name LIMIT 1");
+    $groupQuery->execute([$tenantId]);
+    $defaultGroup = $groupQuery->fetchColumn();
+    if (!$defaultGroup) {
+        $defaultGroup = 'Novos afiliados';
+        $pdo->prepare('INSERT IGNORE INTO affiliate_groups(id,tenant_id,name) VALUES(?,?,?)')->execute([new_id('grp'), $tenantId, $defaultGroup]);
+    }
     $pdo->prepare("INSERT INTO affiliates(id,tenant_id,name,email,affiliate_group,commission,status,sales,orders,code) VALUES(?,?,?,?,?,20,'pending',0,0,?)")
-        ->execute([new_id('af'), $tenantId, $name, $email, 'Novos afiliados', $code]);
+        ->execute([new_id('af'), $tenantId, $name, $email, (string)$defaultGroup, $code]);
 }
 
 function affiliate_initials(string $name): string

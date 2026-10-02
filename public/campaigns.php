@@ -2,12 +2,13 @@
 declare(strict_types=1);
 require_once __DIR__ . '/../modules/auth.php';
 require_once __DIR__ . '/../modules/affiliates.php';
+require_once __DIR__ . '/../modules/affiliate-groups.php';
 require_once __DIR__ . '/../modules/campaigns.php';
 require_login(); start_app_session();
 if (empty($_SESSION['campaign_csrf'])) $_SESSION['campaign_csrf'] = bin2hex(random_bytes(32));
 $csrf = $_SESSION['campaign_csrf'];
 $campaigns = campaigns_read_all(); $affiliates = affiliate_read_all();
-$groups = array_values(array_unique(array_map(static fn($a) => (string)$a['group'], $affiliates)));
+$groups = array_column(affiliate_group_list(), 'name');
 $error = ''; $flash = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_role(['owner', 'admin', 'manager']);

@@ -87,7 +87,7 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
 - `storage/`: arquivos privados e legado;
 - `.runtime/app-data/`: credenciais MySQL e chave de integração, ignoradas pelo Git.
 
-Produtores e administradores podem copiar o link público de inscrição no módulo Afiliados. As inscrições são gravadas no espaço do produtor com status pendente; a aprovação libera o código individual e a recusa desativa a solicitação.
+Produtores e administradores podem copiar o link público de inscrição no módulo Afiliados. As inscrições são gravadas no espaço do produtor com status pendente; a aprovação libera o código individual e a recusa desativa a solicitação. O link **Gerenciar grupos** permite criar categorias, renomear grupos e direcionar campanhas; ao renomear, afiliados e campanhas existentes acompanham a mudança.
 
 ## Notas de produção
 
