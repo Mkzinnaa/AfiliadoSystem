@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../modules/auth.php';
+require_once __DIR__ . '/../modules/mailer.php';
 start_app_session();
 $error = '';
 $notice = '';
@@ -26,8 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email) {
         $error = 'Informe um e-mail válido.';
     } elseif ($action === 'forgot') {
-        // Exibe uma resposta neutra para não revelar se um e-mail existe.
-        $notice = 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.';
+        if (!app_mail_is_configured()) {
+            $notice = 'A recuperação por e-mail ainda não está configurada. Peça ao administrador para configurar o SMTP.';
+        } else {
+            try {
+                $token = issue_password_reset((string)$email);
+                if ($token !== null) {
+                    $resetUrl = app_public_url() . '/reset-password.php?token=' . rawurlencode($token);
+                    $safeUrl = htmlspecialchars($resetUrl, ENT_QUOTES, 'UTF-8');
+                    $html = app_email_page('Redefina sua senha', '<p>Recebemos uma solicitação para trocar a senha da sua conta Vértice.</p><p><a href="' . $safeUrl . '" style="display:inline-block;background:#16845c;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">Criar nova senha</a></p><p>O link expira em uma hora e só pode ser usado uma vez.</p>');
+                    app_send_email((string)$email, 'Redefinição de senha — Vértice', $html, "Recebemos uma solicitação para trocar a senha da sua conta Vértice.\n\nAcesse este link para criar uma nova senha: $resetUrl\n\nO link expira em uma hora e só pode ser usado uma vez.");
+                }
+                $notice = 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.';
+            } catch (Throwable $mailError) {
+                error_log('[Vértice] Falha no envio de recuperação de senha: ' . $mailError->getMessage());
+                $notice = 'Não foi possível enviar o e-mail agora. Tente novamente mais tarde ou fale com o administrador.';
+            }
+        }
     } elseif ($action === 'signup') {
         header('Location: register.php');
         exit;
@@ -58,7 +74,7 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
 <body><main class="layout">
   <section class="story"><div class="brand"><span class="mark">v</span> vértice<em>.</em></div><div class="copy"><div class="eyebrow">SUA OPERAÇÃO, EM UM SÓ LUGAR</div><h1>Boas parcerias<br>fazem crescer.</h1><p>Gerencie seus afiliados, acompanhe resultados e transforme metas em conquistas.</p></div><div class="quote">“Finalmente consigo enxergar toda a operação em um só lugar.”<b>Mariana Costa · NovaVida Store</b></div></section>
   <section class="form-side"><div class="form-wrap">
-    <?php if ($mode === 'forgot'): ?><h2>Recuperar senha</h2><p class="sub">Vamos enviar as instruções para o seu e-mail.</p>
+    <?php if ($mode === 'forgot'): ?><h2>Recuperar senha</h2><p class="sub">Informe seu e-mail. Se o SMTP estiver configurado, enviaremos um link seguro.</p>
     <?php elseif ($mode === 'signup'): ?><h2>Crie sua conta</h2><p class="sub">Comece a organizar sua operação de afiliados.</p>
     <?php else: ?><h2>Bem-vinda de volta</h2><p class="sub">Acesse sua conta para continuar.</p><?php endif; ?>
     <?php if ($error !== ''): ?><div class="message error" role="alert"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div><?php endif; ?>

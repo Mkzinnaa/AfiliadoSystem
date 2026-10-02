@@ -51,6 +51,7 @@ function mysql_schema(): array
         "CREATE TABLE IF NOT EXISTS users (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)$suffix",
         "CREATE TABLE IF NOT EXISTS memberships (tenant_id VARCHAR(64) NOT NULL, user_id VARCHAR(64) NOT NULL, role VARCHAR(20) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,user_id), CONSTRAINT memberships_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT memberships_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS invitations (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, email VARCHAR(190) NOT NULL, role VARCHAR(20) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NOT NULL, accepted_at DATETIME NULL, created_by VARCHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY invitations_tenant_email_idx(tenant_id,email), CONSTRAINT invitations_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT invitations_creator_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS password_reset_tokens (id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NOT NULL, used_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY password_reset_user_created_idx(user_id,created_at), CONSTRAINT password_reset_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS affiliates (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL, affiliate_group VARCHAR(100) NOT NULL, commission DECIMAL(7,3) NOT NULL DEFAULT 20, status VARCHAR(20) NOT NULL DEFAULT 'active', sales DECIMAL(14,2) NOT NULL DEFAULT 0, orders INT NOT NULL DEFAULT 0, code VARCHAR(100) NOT NULL, hotmart_code VARCHAR(100) NULL DEFAULT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), UNIQUE KEY affiliates_tenant_email_uq(tenant_id,email), UNIQUE KEY affiliates_tenant_code_uq(tenant_id,code), UNIQUE KEY affiliates_tenant_hotmart_code_uq(tenant_id,hotmart_code), CONSTRAINT affiliates_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS campaigns (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, title VARCHAR(160) NOT NULL, metric VARCHAR(20) NOT NULL, target DECIMAL(14,2) NOT NULL, affiliate_group VARCHAR(100) NOT NULL DEFAULT 'all', reward VARCHAR(255) NOT NULL DEFAULT '', start_date DATE NOT NULL, end_date DATE NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), CONSTRAINT campaigns_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS platform_admins (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login DATETIME NULL)$suffix",
@@ -164,6 +165,51 @@ function invitation_details(string $token): ?array
 {
     $stmt=app_db()->prepare('SELECT i.email,i.role,i.expires_at,t.name AS tenant_name FROM invitations i JOIN tenants t ON t.id=i.tenant_id WHERE i.token_hash=? AND i.accepted_at IS NULL AND i.expires_at>CURRENT_TIMESTAMP');
     $stmt->execute([hash('sha256',$token)]); $row=$stmt->fetch(); return $row ?: null;
+}
+
+function issue_password_reset(string $email): ?string
+{
+    $pdo = app_db();
+    $query = $pdo->prepare('SELECT id FROM users WHERE email=?');
+    $query->execute([$email]);
+    $userId = $query->fetchColumn();
+    if (!$userId) return null;
+    $recent = $pdo->prepare('SELECT id FROM password_reset_tokens WHERE user_id=? AND created_at>DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 MINUTE) LIMIT 1');
+    $recent->execute([$userId]);
+    if ($recent->fetchColumn()) return null;
+    $token = bin2hex(random_bytes(32));
+    $expires = (new DateTimeImmutable('+1 hour'))->format('Y-m-d H:i:s');
+    $pdo->prepare('INSERT INTO password_reset_tokens(id,user_id,token_hash,expires_at) VALUES(?,?,?,?)')
+        ->execute([new_id('reset'),$userId,hash('sha256',$token),$expires]);
+    return $token;
+}
+
+function password_reset_token_valid(string $token): bool
+{
+    if (strlen($token) !== 64 || !ctype_xdigit($token)) return false;
+    $stmt = app_db()->prepare('SELECT 1 FROM password_reset_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>CURRENT_TIMESTAMP LIMIT 1');
+    $stmt->execute([hash('sha256',$token)]);
+    return (bool)$stmt->fetchColumn();
+}
+
+function complete_password_reset(string $token, string $password): bool
+{
+    if (strlen($password) < 12) throw new DomainException('Crie uma senha com pelo menos 12 caracteres.');
+    $pdo = app_db();
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare('SELECT id,user_id FROM password_reset_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>CURRENT_TIMESTAMP LIMIT 1 FOR UPDATE');
+        $stmt->execute([hash('sha256',$token)]);
+        $reset = $stmt->fetch();
+        if (!$reset) { $pdo->commit(); return false; }
+        $pdo->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$reset['user_id']]);
+        $pdo->prepare('UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP WHERE user_id=? AND used_at IS NULL')->execute([$reset['user_id']]);
+        $pdo->commit();
+        return true;
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        throw $error;
+    }
 }
 
 function tenant_members(): array

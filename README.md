@@ -58,10 +58,27 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
    ```
 
    Use o host fornecido pela hospedagem; pode ser diferente de `localhost`. Não salve essa configuração no repositório nem compartilhe a senha.
-5. Garanta que o usuário PHP possa criar arquivos em `~/vertice/.runtime/app-data`; não use permissão `777`.
-6. Configure HTTPS. Para a configuração inicial do painel comercial, gere uma chave com pelo menos 32 caracteres e defina temporariamente `VERTICE_SETUP_KEY` no ambiente PHP ou grave-a em `~/vertice/.runtime/app-data/setup-key.php` como `<?php return 'CHAVE_LONGA_ALEATORIA';`. Acesse `/platform-admin-setup.php` e crie a senha exclusiva do administrador (mínimo de 14 caracteres). Depois, remova a variável ou apague o arquivo da chave.
-7. Crie a conta inicial do produtor em `/register.php`, escolhendo a senha na própria tela. O administrador comercial é um acesso separado.
-8. Configure a integração de vendas; webhooks externos exigem HTTPS. A Kiwify usa uma assinatura gerada pelo Vértice. Na Hotmart, configure o webhook na versão 2.0.0, informe o Hottok no Vértice e selecione eventos de compra aprovada, reembolso, chargeback e cancelamento. Cadastre no perfil do afiliado o `affiliate_code` da Hotmart para atribuir as vendas. Na Eduzz, configure uma chave de segurança no Console, informe essa mesma chave no Vértice e selecione eventos de fatura paga, reembolsada, chargeback e cancelada; a atribuição usa o e-mail do afiliado do evento. Faça backups do MySQL pelo cPanel e preserve `.runtime/app-data/webhook.key` para recuperar os segredos criptografados.
+5. Para convites e recuperação de senha por e-mail, crie `~/vertice/.runtime/app-data/mail.php` com as configurações SMTP da caixa de e-mail do domínio:
+
+   ```php
+   <?php
+   return [
+       'app_url' => 'https://afiliados.seudominio.com.br',
+       'host' => 'mail.seudominio.com.br',
+       'port' => 587,
+       'encryption' => 'tls', // ou 'ssl' com a porta 465
+       'username' => 'nao-responda@seudominio.com.br',
+       'password' => 'SENHA_DA_CAIXA_DE_EMAIL',
+       'from_email' => 'nao-responda@seudominio.com.br',
+       'from_name' => 'Vértice',
+   ];
+   ```
+
+   Substitua os exemplos pelos dados exibidos pelo seu provedor de e-mail. `app_url` deve ser a URL HTTPS pública do sistema. O arquivo é privado e ignorado pelo Git.
+6. Garanta que o usuário PHP possa criar arquivos em `~/vertice/.runtime/app-data`; não use permissão `777`.
+7. Configure HTTPS. Para a configuração inicial do painel comercial, gere uma chave com pelo menos 32 caracteres e defina temporariamente `VERTICE_SETUP_KEY` no ambiente PHP ou grave-a em `~/vertice/.runtime/app-data/setup-key.php` como `<?php return 'CHAVE_LONGA_ALEATORIA';`. Acesse `/platform-admin-setup.php` e crie a senha exclusiva do administrador (mínimo de 14 caracteres). Depois, remova a variável ou apague o arquivo da chave.
+8. Crie a conta inicial do produtor em `/register.php`, escolhendo a senha na própria tela. O administrador comercial é um acesso separado.
+9. Configure a integração de vendas; webhooks externos exigem HTTPS. A Kiwify usa uma assinatura gerada pelo Vértice. Na Hotmart, configure o webhook na versão 2.0.0, informe o Hottok no Vértice e selecione eventos de compra aprovada, reembolso, chargeback e cancelamento. Cadastre no perfil do afiliado o `affiliate_code` da Hotmart para atribuir as vendas. Na Eduzz, configure uma chave de segurança no Console, informe essa mesma chave no Vértice e selecione eventos de fatura paga, reembolsada, chargeback e cancelada; a atribuição usa o e-mail do afiliado do evento. Faça backups do MySQL pelo cPanel e preserve `.runtime/app-data/webhook.key` para recuperar os segredos criptografados.
 
 ## Estrutura
 
@@ -72,4 +89,4 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
 
 ## Notas de produção
 
-O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, recuperação real de senha/e-mail, limites de cadastro, monitoramento, backups e cobrança SaaS. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.
+O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.
