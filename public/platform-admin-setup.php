@@ -4,8 +4,8 @@ require_once __DIR__ . '/../modules/auth.php';
 start_app_session();
 $pdo=app_db();
 if((int)$pdo->query('SELECT COUNT(*) FROM platform_admins')->fetchColumn()>0){header('Location: platform-admin-login.php');exit;}
-$setupKey=getenv('VERTICE_SETUP_KEY');
-if(!is_string($setupKey)||strlen($setupKey)<32){http_response_code(503);exit('Configuração inicial indisponível. Defina VERTICE_SETUP_KEY com pelo menos 32 caracteres no ambiente privado do servidor e remova essa variável após criar o administrador.');}
+$setupKey=platform_setup_key();
+if(strlen($setupKey)<32){http_response_code(503);exit('Configuração inicial indisponível. Configure uma chave privada de pelo menos 32 caracteres no servidor e remova-a depois de criar o administrador.');}
 if(empty($_SESSION['platform_setup_csrf']))$_SESSION['platform_setup_csrf']=bin2hex(random_bytes(32));
 $error='';$name='';$email='';
 if($_SERVER['REQUEST_METHOD']==='POST'){

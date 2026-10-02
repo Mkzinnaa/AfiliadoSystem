@@ -20,3 +20,33 @@ function demo_enabled(): bool
     $host = strtolower((string)parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST));
     return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
 }
+
+function database_settings(): array
+{
+    $settings = [
+        'driver' => getenv('VERTICE_DB_DRIVER') ?: 'sqlite',
+        'host' => getenv('VERTICE_DB_HOST') ?: '127.0.0.1',
+        'port' => getenv('VERTICE_DB_PORT') ?: '3306',
+        'database' => getenv('VERTICE_DB_NAME') ?: '',
+        'username' => getenv('VERTICE_DB_USER') ?: '',
+        'password' => getenv('VERTICE_DB_PASSWORD') ?: '',
+        'charset' => 'utf8mb4',
+    ];
+    $privateConfig = __DIR__ . '/../.runtime/app-data/database.php';
+    if (is_file($privateConfig)) {
+        $privateSettings = require $privateConfig;
+        if (is_array($privateSettings)) $settings = array_replace($settings, $privateSettings);
+    }
+    $settings['driver'] = strtolower((string)$settings['driver']);
+    return $settings;
+}
+
+function platform_setup_key(): string
+{
+    $environmentKey = getenv('VERTICE_SETUP_KEY');
+    if (is_string($environmentKey) && $environmentKey !== '') return $environmentKey;
+    $privateKeyFile = __DIR__ . '/../.runtime/app-data/setup-key.php';
+    if (!is_file($privateKeyFile)) return '';
+    $privateKey = require $privateKeyFile;
+    return is_string($privateKey) ? $privateKey : '';
+}
