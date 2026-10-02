@@ -24,7 +24,7 @@ function demo_enabled(): bool
 function database_settings(): array
 {
     $settings = [
-        'driver' => getenv('VERTICE_DB_DRIVER') ?: 'sqlite',
+        'driver' => strtolower((string)(getenv('VERTICE_DB_DRIVER') ?: 'mysql')),
         'host' => getenv('VERTICE_DB_HOST') ?: '127.0.0.1',
         'port' => getenv('VERTICE_DB_PORT') ?: '3306',
         'database' => getenv('VERTICE_DB_NAME') ?: '',
@@ -37,7 +37,6 @@ function database_settings(): array
         $privateSettings = require $privateConfig;
         if (is_array($privateSettings)) $settings = array_replace($settings, $privateSettings);
     }
-    $settings['driver'] = strtolower((string)$settings['driver']);
     return $settings;
 }
 

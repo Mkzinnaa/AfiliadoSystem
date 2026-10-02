@@ -1,49 +1,48 @@
 # Vértice — plataforma de afiliados
 
-Aplicação PHP para gestão de espaços de produtores, afiliados, vendas, campanhas, equipe e integração de pedidos via webhook da Kiwify.
+Aplicação PHP para gestão de espaços de produtores, afiliados, vendas, campanhas, equipe e integração de pedidos via webhook da Kiwify. **MySQL é o único banco suportado.**
 
 ## Requisitos
 
 - PHP 8.1 ou superior;
-- extensões `PDO` e `openssl` habilitadas; `pdo_sqlite` para desenvolvimento local e `pdo_mysql` para MySQL no cPanel;
-- Apache com `mod_rewrite` e suporte a `.htaccess` (para o fallback de raiz);
-- diretório gravável pelo PHP para `/.runtime/app-data/`.
+- extensões `PDO`, `pdo_mysql` e `openssl`;
+- MySQL/MariaDB vazio e usuário com permissões sobre o banco;
+- Apache com `mod_rewrite` e suporte a `.htaccess`;
+- diretório privado gravável pelo PHP para `/.runtime/app-data/`.
 
-O desenvolvimento local continua usando SQLite por padrão. Em hospedagem, configure o driver MySQL. Crie um banco vazio; o sistema instala as tabelas na primeira requisição. Os dados do SQLite local não são migrados automaticamente.
+O sistema cria as tabelas automaticamente na primeira conexão ao banco. Não há fallback para SQLite nem migração automática de dados antigos.
 
-## Rodar localmente
+## Desenvolvimento local
 
-O runtime PHP baixado para desenvolvimento fica em `.runtime/` e não é enviado ao Git. Com PHP instalado no computador:
+Configure o `pdo_mysql` no PHP local. O runtime PHP de desenvolvimento fica em `.runtime/` e não é enviado ao Git. Crie `.runtime/app-data/database.php`:
+
+```php
+<?php
+return [
+    'driver' => 'mysql',
+    'host' => '127.0.0.1',
+    'port' => '3306',
+    'database' => 'nome_do_banco',
+    'username' => 'usuario_mysql',
+    'password' => 'senha_mysql',
+    'charset' => 'utf8mb4',
+];
+```
+
+O arquivo é privado e ignorado pelo Git. Com o MySQL local configurado, inicie o servidor:
 
 ```sh
 php -S 127.0.0.1:8000 -t public
 ```
 
-Abra `http://127.0.0.1:8000`. Em localhost o espaço de demonstração é criado automaticamente, com login `mariana@novavida.com` e senha `Vertice2026!`. Essa demonstração serve somente para desenvolvimento local.
+Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com` / `Vertice2026!`). Esse acesso serve apenas para desenvolvimento local.
 
-## Preparar o GitHub
+## Publicação no cPanel
 
-O repositório exclui `.runtime/`, banco SQLite, logs e arquivos privados de storage. Não adicione credenciais, chaves de webhook, banco local ou dados reais ao Git.
-
-Depois de criar um repositório vazio no GitHub, configure o remoto e publique a branch principal:
-
-```sh
-git add .
-git commit -m "Preparar plataforma Vértice para hospedagem"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/SEU-REPOSITORIO.git
-git push -u origin main
-```
-
-Substitua a URL de exemplo pela URL do repositório criado. Se já existir um remoto, confira `git remote -v` antes de adicionar outro.
-
-## Publicar no cPanel
-
-1. No cPanel, abra **MySQL Database Wizard** e crie um banco e um usuário com senha própria. Conceda ao usuário os privilégios necessários nesse banco. Não carregue o `.runtime/app-data/app.sqlite` do desenvolvimento.
-2. Clone o repositório com **Git Version Control** do cPanel ou envie o snapshot do repositório para uma pasta privada fora de `public_html`, por exemplo `~/vertice`.
-3. Aponte o domínio/subdomínio para `~/vertice/public`. Assim `modules/`, `storage/` e `.runtime/` ficam fora da raiz pública. Se o plano não permitir escolher a raiz do domínio, a regra na raiz do repositório encaminha as requisições para `public/`; valide que o Apache permite `mod_rewrite` e `.htaccess`.
-4. Selecione PHP 8.1+ e habilite `pdo_mysql` e `openssl` no seletor de extensões do cPanel. (Localmente, `pdo_sqlite` continua sendo usado.)
-5. Crie `~/vertice/.runtime/app-data/database.php`, fora da raiz pública, com os dados do banco criados no cPanel:
+1. Em **MySQL Database Wizard**, crie o banco e um usuário, concedendo os privilégios necessários sobre esse banco.
+2. Mantenha o repositório em uma pasta privada fora de `public_html`, por exemplo `~/vertice`, e aponte o domínio para `~/vertice/public`. Se não puder escolher a raiz do domínio, o `.htaccess` da raiz encaminha as requisições a `public/`, desde que Apache permita `mod_rewrite` e `.htaccess`.
+3. Selecione PHP 8.1+ e habilite `pdo_mysql` e `openssl`.
+4. Crie `~/vertice/.runtime/app-data/database.php` fora da raiz pública, preenchendo os valores com os dados apresentados pelo cPanel:
 
    ```php
    <?php
@@ -58,21 +57,19 @@ Substitua a URL de exemplo pela URL do repositório criado. Se já existir um re
    ];
    ```
 
-   Troque os valores de exemplo pelos dados mostrados pelo cPanel. Restrinja o acesso ao arquivo e nunca o envie ao GitHub. As variáveis `VERTICE_DB_*` também podem ser usadas como alternativa.
-6. Garanta que o usuário PHP consiga criar e escrever em `~/vertice/.runtime/app-data` (para a configuração privada e a chave de criptografia das integrações). Não use permissões `777`; ajuste proprietário/grupo/permissões conforme o provedor.
-7. Configure HTTPS e force o domínio a usar HTTPS antes de compartilhar logins ou receber webhooks.
-8. Desabilite o usuário demo antes da primeira requisição pública, definindo `VERTICE_DEMO_ENABLED=0` no ambiente PHP do domínio. O padrão já habilita o demo apenas em `localhost`; use um banco vazio para produção.
-9. Gere uma chave aleatória privada de pelo menos 32 caracteres. Configure `VERTICE_SETUP_KEY` no ambiente PHP ou crie `~/vertice/.runtime/app-data/setup-key.php` com `<?php return 'COLOQUE_A_CHAVE_AQUI';`. Acesse `/platform-admin-setup.php` para criar o administrador comercial (senha exclusiva com pelo menos 14 caracteres). Depois, remova a variável ou apague o arquivo `setup-key.php`. Sem a chave, a tela de setup permanece indisponível. Proteja também a rota por IP ou privacidade de diretório durante a configuração, se possível.
-10. Crie a conta inicial do produtor em `/register.php`: informe seu nome, o nome da empresa, seu e-mail e defina uma senha forte. Essa conta será proprietária do novo espaço; a senha é escolhida na tela e não fica embutida no projeto. O administrador comercial é um acesso separado.
-11. Configure a integração da Kiwify dentro do espaço; o webhook precisa estar acessível por HTTPS. Faça backups do MySQL pelo cPanel e preserve também `.runtime/app-data/webhook.key`, necessária para descriptografar os segredos de integração cadastrados.
+   Use o host fornecido pela hospedagem; pode ser diferente de `localhost`. Não salve essa configuração no repositório nem compartilhe a senha.
+5. Garanta que o usuário PHP possa criar arquivos em `~/vertice/.runtime/app-data`; não use permissão `777`.
+6. Configure HTTPS. Para a configuração inicial do painel comercial, gere uma chave com pelo menos 32 caracteres e defina temporariamente `VERTICE_SETUP_KEY` no ambiente PHP ou grave-a em `~/vertice/.runtime/app-data/setup-key.php` como `<?php return 'CHAVE_LONGA_ALEATORIA';`. Acesse `/platform-admin-setup.php` e crie a senha exclusiva do administrador (mínimo de 14 caracteres). Depois, remova a variável ou apague o arquivo da chave.
+7. Crie a conta inicial do produtor em `/register.php`, escolhendo a senha na própria tela. O administrador comercial é um acesso separado.
+8. Configure a integração Kiwify; o webhook deve estar acessível por HTTPS. Faça backups do MySQL pelo cPanel e preserve `.runtime/app-data/webhook.key` para recuperar os segredos de integração.
 
 ## Estrutura
 
 - `public/`: páginas PHP, CSS, JavaScript e arquivos servidos ao navegador;
-- `modules/`: autenticação, banco e regras da aplicação, fora da raiz pública recomendada;
-- `storage/`: arquivos legados/privados, protegidos por `.htaccess`;
-- `.runtime/app-data/`: configuração privada do MySQL, SQLite local e chave de integração; ignorados pelo Git.
+- `modules/`: conexão MySQL, autenticação e regras da aplicação;
+- `storage/`: arquivos privados e legado;
+- `.runtime/app-data/`: credenciais MySQL e chave de integração, ignoradas pelo Git.
 
-## Notas antes de produção
+## Notas de produção
 
-O projeto está preparado para publicação, mas ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, recuperação real de senha/e-mail, limites e proteção contra abuso de cadastro, monitoramento, rotina testada de backup/restauração e plano de cobrança SaaS. Se o provedor cPanel não oferecer configuração de variáveis de ambiente PHP, proteja temporariamente a rota de setup com privacidade de diretório ou restrição de IP no Apache e remova essa proteção somente durante a configuração controlada.
+O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, recuperação real de senha/e-mail, limites de cadastro, monitoramento, backups e cobrança SaaS. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.

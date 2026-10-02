@@ -43,8 +43,7 @@ function integration_change(string $id,string $action): ?string
 function integration_record_ignored_event(array $connection,array $payload):array
 {
     $eventName=(string)($payload['webhook_event_type']??'unknown');$orderId=(string)($payload['order_id']??'');$eventId=(string)($payload['webhook_event_id']??($orderId!==''?$orderId.':'.$eventName:new_id('evt')));$pdo=app_db();
-    $insert = database_driver($pdo)==='mysql' ? 'INSERT IGNORE' : 'INSERT OR IGNORE';
-    $stmt=$pdo->prepare("$insert INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,'ignored','Evento válido, sem alteração de faturamento.')");$stmt->execute([new_id('evt'),$connection['tenant_id'],$connection['id'],$eventId,$eventName]);
+    $stmt=$pdo->prepare("INSERT IGNORE INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,'ignored','Evento válido, sem alteração de faturamento.')");$stmt->execute([new_id('evt'),$connection['tenant_id'],$connection['id'],$eventId,$eventName]);
     if($stmt->rowCount()>0)$pdo->prepare('UPDATE integration_connections SET last_event_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$connection['id']]);
     return ['duplicate'=>$stmt->rowCount()===0,'ignored'=>true,'message'=>$stmt->rowCount()===0?'Evento já registrado.':'Evento recebido e registrado.'];
 }
@@ -66,10 +65,7 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
         $duplicate=$pdo->prepare('SELECT id FROM integration_events WHERE connection_id=? AND external_event_id=?');$duplicate->execute([$connectionId,$eventId]);
         if($duplicate->fetchColumn()){$pdo->commit();return ['duplicate'=>true,'message'=>'Evento já processado.'];}
         $affiliateId=null;$storedAffiliateCode=$affiliateCode;if($affiliateCode!==''||$affiliateEmail!==''){$affiliate=$pdo->prepare('SELECT id,code FROM affiliates WHERE tenant_id=? AND (LOWER(code)=LOWER(?) OR LOWER(email)=LOWER(?)) LIMIT 1');$affiliate->execute([$connection['tenant_id'],$affiliateCode,$affiliateEmail]);$matched=$affiliate->fetch();if($matched){$affiliateId=(string)$matched['id'];$storedAffiliateCode=(string)$matched['code'];}elseif($affiliateEmail!=='')$storedAffiliateCode='';}
-        $upsertSql = database_driver($pdo)==='mysql'
-            ? 'INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),amount_cents=VALUES(amount_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP'
-            : 'INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(connection_id,external_order_id) DO UPDATE SET affiliate_id=excluded.affiliate_id,affiliate_code=excluded.affiliate_code,amount_cents=excluded.amount_cents,status=excluded.status,sold_at=excluded.sold_at,updated_at=CURRENT_TIMESTAMP';
-        $upsert=$pdo->prepare($upsertSql);
+        $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),amount_cents=VALUES(amount_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
         $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$affiliateId,$storedAffiliateCode,(int)round((float)$amount*100),$currency,$status,$saleDate]);
         $pdo->prepare('INSERT INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,?,?)')->execute([new_id('evt'),$connection['tenant_id'],$connectionId,$eventId,$eventType,'processed',($affiliateCode!==''||$affiliateEmail!=='')&&$affiliateId===null?'Pedido recebido sem correspondência de afiliado.':'']);
         $pdo->prepare('UPDATE integration_connections SET last_event_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$connectionId]);

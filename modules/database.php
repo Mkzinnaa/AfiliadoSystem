@@ -9,27 +9,16 @@ function app_db(): PDO
     $storage = __DIR__ . '/../.runtime/app-data';
     if (!is_dir($storage)) mkdir($storage, 0775, true);
     $settings = database_settings();
-    $driver = $settings['driver'];
+    if ($settings['driver'] !== 'mysql') throw new RuntimeException('Este sistema está configurado para usar MySQL.');
     $options = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC];
-    if ($driver === 'mysql') {
-        if (!in_array('mysql', PDO::getAvailableDrivers(), true)) throw new RuntimeException('O driver pdo_mysql não está habilitado no PHP.');
-        foreach (['host','database','username','password'] as $required) if ($settings[$required] === '') throw new RuntimeException('Configure host, nome do banco, usuário e senha do MySQL em VERTICE_DB_* ou no arquivo privado de configuração.');
-        $charset = preg_match('/^[a-zA-Z0-9_]+$/', (string)$settings['charset']) ? $settings['charset'] : 'utf8mb4';
-        $dsn = 'mysql:host=' . $settings['host'] . ';port=' . (int)$settings['port'] . ';dbname=' . $settings['database'] . ';charset=' . $charset;
-        $pdo = new PDO($dsn, $settings['username'], $settings['password'], $options + [PDO::ATTR_EMULATE_PREPARES => false]);
-        $schema = mysql_schema();
-    } elseif ($driver === 'sqlite') {
-        if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) throw new RuntimeException('SQLite não está habilitado no PHP.');
-        $pdo = new PDO('sqlite:' . $storage . '/app.sqlite', null, null, $options);
-        $pdo->exec('PRAGMA foreign_keys = ON');
-        $pdo->exec('PRAGMA journal_mode = WAL');
-        $schema = sqlite_schema();
-    } else {
-        throw new RuntimeException('Driver de banco inválido. Use mysql ou sqlite.');
-    }
-    foreach ($schema as $statement) $pdo->exec($statement);
-    ensure_integration_secret_column($pdo, $driver);
-    seed_subscription_plans($pdo, $driver);
+    if (!in_array('mysql', PDO::getAvailableDrivers(), true)) throw new RuntimeException('O driver pdo_mysql não está habilitado no PHP.');
+    foreach (['host','database','username','password'] as $required) if ($settings[$required] === '') throw new RuntimeException('Configure host, nome do banco, usuário e senha do MySQL em VERTICE_DB_* ou no arquivo privado .runtime/app-data/database.php.');
+    $charset = preg_match('/^[a-zA-Z0-9_]+$/', (string)$settings['charset']) ? $settings['charset'] : 'utf8mb4';
+    $dsn = 'mysql:host=' . $settings['host'] . ';port=' . (int)$settings['port'] . ';dbname=' . $settings['database'] . ';charset=' . $charset;
+    $pdo = new PDO($dsn, $settings['username'], $settings['password'], $options + [PDO::ATTR_EMULATE_PREPARES => false]);
+    foreach (mysql_schema() as $statement) $pdo->exec($statement);
+    ensure_integration_secret_column($pdo);
+    seed_subscription_plans($pdo);
     $existing = $pdo->prepare('SELECT id FROM tenants WHERE id = ?');
     $existing->execute([DEMO_USER['tenant_id']]);
     if (demo_enabled() && !$existing->fetch()) {
@@ -48,33 +37,9 @@ function app_db(): PDO
     }
     $trialEnd = (new DateTimeImmutable('+14 days'))->format('Y-m-d');
     $tenants = $pdo->query('SELECT id FROM tenants')->fetchAll(PDO::FETCH_COLUMN);
-    $subscriptionSql = $driver === 'mysql'
-        ? "INSERT IGNORE INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)"
-        : "INSERT OR IGNORE INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)";
-    $subscription = $pdo->prepare($subscriptionSql);
+    $subscription = $pdo->prepare("INSERT IGNORE INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)");
     foreach ($tenants as $tenant) $subscription->execute([$tenant, $trialEnd]);
     return $pdo;
-}
-
-function sqlite_schema(): array
-{
-    return [
-        "CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-        "CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL COLLATE NOCASE UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-        "CREATE TABLE IF NOT EXISTS memberships (tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, role TEXT NOT NULL CHECK(role IN ('owner','admin','manager','viewer')), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,user_id))",
-        "CREATE TABLE IF NOT EXISTS invitations (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, email TEXT NOT NULL COLLATE NOCASE, role TEXT NOT NULL CHECK(role IN ('admin','manager','viewer')), token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, accepted_at TEXT, created_by TEXT NOT NULL REFERENCES users(id), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-        "CREATE INDEX IF NOT EXISTS invitations_tenant_email_idx ON invitations(tenant_id,email)",
-        "CREATE TABLE IF NOT EXISTS affiliates (id TEXT NOT NULL, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, name TEXT NOT NULL, email TEXT NOT NULL COLLATE NOCASE, affiliate_group TEXT NOT NULL, commission REAL NOT NULL DEFAULT 20, status TEXT NOT NULL DEFAULT 'active', sales REAL NOT NULL DEFAULT 0, orders INTEGER NOT NULL DEFAULT 0, code TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), UNIQUE(tenant_id,email), UNIQUE(tenant_id,code))",
-        "CREATE TABLE IF NOT EXISTS campaigns (id TEXT NOT NULL, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, title TEXT NOT NULL, metric TEXT NOT NULL CHECK(metric IN ('revenue','orders')), target REAL NOT NULL, affiliate_group TEXT NOT NULL DEFAULT 'all', reward TEXT NOT NULL DEFAULT '', start_date TEXT NOT NULL, end_date TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id))",
-        "CREATE TABLE IF NOT EXISTS platform_admins (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL COLLATE NOCASE UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login TEXT)",
-        "CREATE TABLE IF NOT EXISTS subscription_plans (code TEXT PRIMARY KEY, name TEXT NOT NULL, monthly_price_cents INTEGER NOT NULL DEFAULT 0 CHECK(monthly_price_cents >= 0), active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-        "CREATE TABLE IF NOT EXISTS subscriptions (tenant_id TEXT PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE, plan_code TEXT NOT NULL REFERENCES subscription_plans(code), status TEXT NOT NULL CHECK(status IN ('trial','active','past_due','canceled')), started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, current_period_end TEXT, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, notes TEXT NOT NULL DEFAULT '')",
-        "CREATE TABLE IF NOT EXISTS subscription_events (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, admin_id TEXT NOT NULL REFERENCES platform_admins(id), event_type TEXT NOT NULL, details TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)",
-        "CREATE TABLE IF NOT EXISTS integration_connections (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, name TEXT NOT NULL, platform TEXT NOT NULL DEFAULT 'kiwify', token_hash TEXT NOT NULL, secret_ciphertext TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused')), last_event_at TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(tenant_id,name))",
-        "CREATE TABLE IF NOT EXISTS sales_orders (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, connection_id TEXT NOT NULL REFERENCES integration_connections(id) ON DELETE CASCADE, external_order_id TEXT NOT NULL, affiliate_id TEXT, affiliate_code TEXT NOT NULL DEFAULT '', amount_cents INTEGER NOT NULL CHECK(amount_cents >= 0), currency TEXT NOT NULL DEFAULT 'BRL', status TEXT NOT NULL CHECK(status IN ('approved','refunded','canceled')), sold_at TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(connection_id,external_order_id))",
-        "CREATE INDEX IF NOT EXISTS sales_orders_tenant_status_idx ON sales_orders(tenant_id,status,sold_at)",
-        "CREATE TABLE IF NOT EXISTS integration_events (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE, connection_id TEXT NOT NULL REFERENCES integration_connections(id) ON DELETE CASCADE, external_event_id TEXT NOT NULL, event_type TEXT NOT NULL, result TEXT NOT NULL, message TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(connection_id,external_event_id))",
-    ];
 }
 
 function mysql_schema(): array
@@ -97,34 +62,20 @@ function mysql_schema(): array
     ];
 }
 
-function ensure_integration_secret_column(PDO $pdo, string $driver): void
+function ensure_integration_secret_column(PDO $pdo): void
 {
-    if ($driver === 'sqlite') {
-        $columns = $pdo->query('PRAGMA table_info(integration_connections)')->fetchAll();
-        $exists = in_array('secret_ciphertext', array_column($columns, 'name'), true);
-    } else {
-        $check = $pdo->query("SHOW COLUMNS FROM integration_connections LIKE 'secret_ciphertext'");
-        $exists = (bool)$check->fetch();
-    }
-    if (!$exists) $pdo->exec("ALTER TABLE integration_connections ADD COLUMN secret_ciphertext " . ($driver === 'mysql' ? "VARCHAR(255) NOT NULL DEFAULT ''" : "TEXT NOT NULL DEFAULT ''"));
+    $check = $pdo->query("SHOW COLUMNS FROM integration_connections LIKE 'secret_ciphertext'");
+    if (!$check->fetch()) $pdo->exec("ALTER TABLE integration_connections ADD COLUMN secret_ciphertext VARCHAR(255) NOT NULL DEFAULT ''");
 }
 
-function seed_subscription_plans(PDO $pdo, string $driver): void
+function seed_subscription_plans(PDO $pdo): void
 {
     $plans = [['starter','Inicial'],['growth','Crescimento'],['scale','Escala']];
-    $sql = $driver === 'mysql'
-        ? 'INSERT IGNORE INTO subscription_plans(code,name,monthly_price_cents,active) VALUES(?,?,0,1)'
-        : 'INSERT OR IGNORE INTO subscription_plans(code,name,monthly_price_cents,active) VALUES(?,?,0,1)';
-    $stmt = $pdo->prepare($sql);
+    $stmt = $pdo->prepare('INSERT IGNORE INTO subscription_plans(code,name,monthly_price_cents,active) VALUES(?,?,0,1)');
     foreach ($plans as $plan) $stmt->execute($plan);
 }
 
 function new_id(string $prefix): string { return $prefix . '-' . bin2hex(random_bytes(12)); }
-
-function database_driver(PDO $pdo): string
-{
-    return (string)$pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
-}
 
 function create_workspace(string $ownerName, string $workspaceName, string $email, string $password): array
 {
