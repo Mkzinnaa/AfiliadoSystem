@@ -52,6 +52,8 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/login.css">
   <link rel="stylesheet" href="assets/css/login-access.css">
+  <link rel="stylesheet" href="assets/css/password-toggle.css">
+  <script src="assets/js/password-toggle.js" defer></script>
 </head>
 <body><main class="layout">
   <section class="story"><div class="brand"><span class="mark">v</span> vértice<em>.</em></div><div class="copy"><div class="eyebrow">SUA OPERAÇÃO, EM UM SÓ LUGAR</div><h1>Boas parcerias<br>fazem crescer.</h1><p>Gerencie seus afiliados, acompanhe resultados e transforme metas em conquistas.</p></div><div class="quote">“Finalmente consigo enxergar toda a operação em um só lugar.”<b>Mariana Costa · NovaVida Store</b></div></section>
@@ -64,7 +66,7 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
     <form method="post" action="login.php" autocomplete="on"><input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['login_csrf'], ENT_QUOTES, 'UTF-8') ?>">
       <input type="hidden" name="action" value="<?= htmlspecialchars($mode, ENT_QUOTES, 'UTF-8') ?>">
       <div class="field"><label for="email">E-mail</label><input id="email" type="email" name="email" autocomplete="email" placeholder="voce@empresa.com" value="<?= htmlspecialchars((string)($_POST['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required></div>
-      <?php if ($mode !== 'forgot'): ?><div class="field"><label for="password">Senha</label><input id="password" type="password" name="password" autocomplete="current-password" placeholder="Sua senha" minlength="6" required></div><?php endif; ?>
+      <?php if ($mode !== 'forgot'): ?><div class="field"><label for="password">Senha</label><div class="password-control"><input id="password" type="password" name="password" autocomplete="current-password" placeholder="Sua senha" minlength="6" required><button class="toggle-password" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.2 4.1M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.5 0 2.8-.4 4-1"/></svg></button></div></div><?php endif; ?>
       <?php if ($mode === 'login'): ?><div class="options"><label><input type="checkbox" name="remember" value="1" checked> Manter conectado</label><button class="link" name="action" value="forgot" formnovalidate>Esqueci minha senha</button></div><?php endif; ?>
       <button class="submit" type="submit"><?= $mode === 'forgot' ? 'Enviar instruções  →' : 'Entrar na plataforma  →' ?></button>
     </form>

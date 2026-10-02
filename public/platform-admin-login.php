@@ -27,6 +27,8 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/login.css">
   <link rel="stylesheet" href="assets/css/login-access.css">
+  <link rel="stylesheet" href="assets/css/password-toggle.css">
+  <script src="assets/js/password-toggle.js" defer></script>
 </head>
 <body>
   <main class="layout">
@@ -47,7 +49,7 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
         <form method="post" autocomplete="on">
           <input type="hidden" name="csrf" value="<?= ple($_SESSION['platform_login_csrf']) ?>">
           <div class="field"><label for="email">E-mail administrativo</label><input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
-          <div class="field"><label for="password">Senha</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
+          <div class="field"><label for="password">Senha</label><div class="password-control"><input id="password" type="password" name="password" autocomplete="current-password" required><button class="toggle-password" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.2 4.1M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.5 0 2.8-.4 4-1"/></svg></button></div></div>
           <button class="submit" type="submit">Acessar painel SaaS →</button>
         </form>
         <div class="switch"><a href="login.php" class="link">← Voltar ao acesso do produtor</a></div>
