@@ -89,6 +89,8 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
 
 Produtores e administradores podem copiar o link público de inscrição no módulo Afiliados. As inscrições são gravadas no espaço do produtor com status pendente; a aprovação libera o código individual e a recusa desativa a solicitação. O link **Gerenciar grupos** permite criar categorias, renomear grupos e direcionar campanhas; ao renomear, afiliados e campanhas existentes acompanham a mudança.
 
+No módulo Metas, campanhas podem ser direcionadas a toda a equipe, a um grupo ou a um afiliado ativo. Em contas de produção, o progresso usa pedidos aprovados dentro das datas configuradas; o espaço demo mantém indicadores ilustrativos.
+
 ## Notas de produção
 
 O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.

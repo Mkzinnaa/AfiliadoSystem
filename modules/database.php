@@ -19,6 +19,7 @@ function app_db(): PDO
     foreach (mysql_schema() as $statement) $pdo->exec($statement);
     ensure_integration_secret_column($pdo);
     ensure_affiliate_hotmart_code_column($pdo);
+    ensure_campaign_target_affiliate_column($pdo);
     seed_subscription_plans($pdo);
     $existing = $pdo->prepare('SELECT id FROM tenants WHERE id = ?');
     $existing->execute([DEMO_USER['tenant_id']]);
@@ -54,7 +55,7 @@ function mysql_schema(): array
         "CREATE TABLE IF NOT EXISTS password_reset_tokens (id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NOT NULL, used_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY password_reset_user_created_idx(user_id,created_at), CONSTRAINT password_reset_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS affiliates (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL, affiliate_group VARCHAR(100) NOT NULL, commission DECIMAL(7,3) NOT NULL DEFAULT 20, status VARCHAR(20) NOT NULL DEFAULT 'active', sales DECIMAL(14,2) NOT NULL DEFAULT 0, orders INT NOT NULL DEFAULT 0, code VARCHAR(100) NOT NULL, hotmart_code VARCHAR(100) NULL DEFAULT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), UNIQUE KEY affiliates_tenant_email_uq(tenant_id,email), UNIQUE KEY affiliates_tenant_code_uq(tenant_id,code), UNIQUE KEY affiliates_tenant_hotmart_code_uq(tenant_id,hotmart_code), CONSTRAINT affiliates_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS affiliate_groups (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(100) NOT NULL, description VARCHAR(255) NOT NULL DEFAULT '', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), UNIQUE KEY affiliate_groups_tenant_name_uq(tenant_id,name), CONSTRAINT affiliate_groups_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
-        "CREATE TABLE IF NOT EXISTS campaigns (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, title VARCHAR(160) NOT NULL, metric VARCHAR(20) NOT NULL, target DECIMAL(14,2) NOT NULL, affiliate_group VARCHAR(100) NOT NULL DEFAULT 'all', reward VARCHAR(255) NOT NULL DEFAULT '', start_date DATE NOT NULL, end_date DATE NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), CONSTRAINT campaigns_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS campaigns (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, title VARCHAR(160) NOT NULL, metric VARCHAR(20) NOT NULL, target DECIMAL(14,2) NOT NULL, affiliate_group VARCHAR(100) NOT NULL DEFAULT 'all', target_affiliate_id VARCHAR(64) NULL, reward VARCHAR(255) NOT NULL DEFAULT '', start_date DATE NOT NULL, end_date DATE NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), KEY campaigns_affiliate_target_idx(tenant_id,target_affiliate_id), CONSTRAINT campaigns_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS platform_admins (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login DATETIME NULL)$suffix",
         "CREATE TABLE IF NOT EXISTS subscription_plans (code VARCHAR(32) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, monthly_price_cents INT NOT NULL DEFAULT 0, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)$suffix",
         "CREATE TABLE IF NOT EXISTS subscriptions (tenant_id VARCHAR(64) NOT NULL PRIMARY KEY, plan_code VARCHAR(32) NOT NULL, status VARCHAR(20) NOT NULL, started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, current_period_end DATE NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, notes VARCHAR(500) NOT NULL DEFAULT '', CONSTRAINT subscriptions_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT subscriptions_plan_fk FOREIGN KEY(plan_code) REFERENCES subscription_plans(code))$suffix",
@@ -77,6 +78,14 @@ function ensure_affiliate_hotmart_code_column(PDO $pdo): void
     if (!$column->fetch()) $pdo->exec('ALTER TABLE affiliates ADD COLUMN hotmart_code VARCHAR(100) NULL DEFAULT NULL AFTER code');
     $index = $pdo->query("SHOW INDEX FROM affiliates WHERE Key_name='affiliates_tenant_hotmart_code_uq'");
     if (!$index->fetch()) $pdo->exec('ALTER TABLE affiliates ADD UNIQUE KEY affiliates_tenant_hotmart_code_uq(tenant_id,hotmart_code)');
+}
+
+function ensure_campaign_target_affiliate_column(PDO $pdo): void
+{
+    $column = $pdo->query("SHOW COLUMNS FROM campaigns LIKE 'target_affiliate_id'");
+    if (!$column->fetch()) $pdo->exec('ALTER TABLE campaigns ADD COLUMN target_affiliate_id VARCHAR(64) NULL AFTER affiliate_group');
+    $index = $pdo->query("SHOW INDEX FROM campaigns WHERE Key_name='campaigns_affiliate_target_idx'");
+    if (!$index->fetch()) $pdo->exec('ALTER TABLE campaigns ADD KEY campaigns_affiliate_target_idx(tenant_id,target_affiliate_id)');
 }
 
 function seed_subscription_plans(PDO $pdo): void

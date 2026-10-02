@@ -8,3 +8,18 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&campaignMod
 const metric=document.querySelector('[name="metric"]');
 const target=document.querySelector('[name="target"]');
 if(metric&&target)metric.addEventListener('change',()=>{target.step=metric.value==='orders'?'1':'0.01';target.placeholder=metric.value==='orders'?'100':'50000'});
+const campaignScope=document.getElementById('campaignScope');
+const campaignGroupField=document.getElementById('campaignGroupField');
+const campaignAffiliateField=document.getElementById('campaignAffiliateField');
+if(campaignScope&&campaignGroupField&&campaignAffiliateField){
+  const groupSelect=campaignGroupField.querySelector('select');
+  const affiliateSelect=campaignAffiliateField.querySelector('select');
+  const updateAudience=()=>{
+    campaignGroupField.style.display=campaignScope.value==='group'?'grid':'none';
+    campaignAffiliateField.style.display=campaignScope.value==='affiliate'?'grid':'none';
+    if(groupSelect)groupSelect.required=campaignScope.value==='group';
+    if(affiliateSelect)affiliateSelect.required=campaignScope.value==='affiliate';
+  };
+  campaignScope.addEventListener('change',updateAudience);
+  updateAudience();
+}
