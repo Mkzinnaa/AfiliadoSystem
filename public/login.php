@@ -51,6 +51,7 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/login.css">
+  <link rel="stylesheet" href="assets/css/login-access.css">
 </head>
 <body><main class="layout">
   <section class="story"><div class="brand"><span class="mark">v</span> vértice<em>.</em></div><div class="copy"><div class="eyebrow">SUA OPERAÇÃO, EM UM SÓ LUGAR</div><h1>Boas parcerias<br>fazem crescer.</h1><p>Gerencie seus afiliados, acompanhe resultados e transforme metas em conquistas.</p></div><div class="quote">“Finalmente consigo enxergar toda a operação em um só lugar.”<b>Mariana Costa · NovaVida Store</b></div></section>
@@ -69,6 +70,6 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
     </form>
     <?php if ($mode === 'login' && demo_enabled()): ?><div class="demo">Acesso de demonstração: <b>mariana@novavida.com</b> · Senha: <b>Vertice2026!</b></div><?php endif; ?>
     <div class="switch"><?php if ($mode === 'forgot'): ?><a class="link" href="login.php">← Voltar para entrar</a><?php else: ?>Ainda não tem um espaço? <a class="link" href="register.php">Criar conta grátis</a><?php endif; ?></div>
-    <div class="terms">Ao continuar, você concorda com nossos <a href="#">Termos de Uso</a> e <a href="#">Política de Privacidade</a>.</div><div class="hint">Protótipo demonstrativo · sessão PHP · <a href="platform-admin-login.php">Administração da plataforma</a></div>
+    <div class="terms">Ao continuar, você concorda com nossos <a href="#">Termos de Uso</a> e <a href="#">Política de Privacidade</a>.</div><div class="hint">Protótipo demonstrativo · sessão PHP</div><div class="admin-access"><a href="platform-admin-login.php">Acessar painel SaaS <span aria-hidden="true">→</span></a></div>
   </div></section>
 </main></body></html>

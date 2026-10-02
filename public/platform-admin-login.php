@@ -16,4 +16,43 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 }
 function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
 ?>
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administração da plataforma — Vértice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/platform-admin.css"></head><body class="auth-page"><main class="auth-card"><a class="brand" href="login.php"><i>v</i> vértice<span>.</span></a><div class="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</div><h1>Entrar no painel comercial</h1><p class="muted">Acesso separado das contas dos produtores.</p><?php if($error): ?><div class="alert"><?= ple($error) ?></div><?php endif; ?><form method="post"><input type="hidden" name="csrf" value="<?= ple($_SESSION['platform_login_csrf']) ?>"><label>E-mail administrativo<input type="email" name="email" autocomplete="username" required autofocus></label><label>Senha<input type="password" name="password" autocomplete="current-password" required></label><button class="button primary full" type="submit">Entrar no painel</button></form><a class="back" href="login.php">← Voltar ao acesso de produtor</a></main></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Entrar no painel SaaS — Vértice</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/login.css">
+  <link rel="stylesheet" href="assets/css/login-access.css">
+</head>
+<body>
+  <main class="layout">
+    <section class="story">
+      <div class="brand"><span class="mark">v</span> vértice<em>.</em></div>
+      <div class="copy">
+        <div class="eyebrow">ADMINISTRAÇÃO DO SAAS</div>
+        <h1>Uma visão completa<br>da plataforma.</h1>
+        <p>Gerencie espaços, planos e assinaturas em uma área administrativa protegida.</p>
+      </div>
+      <div class="quote">Acesso exclusivo para a equipe responsável pela plataforma.</div>
+    </section>
+    <section class="form-side">
+      <div class="form-wrap">
+        <h2>Entrar no painel SaaS</h2>
+        <p class="sub">Use suas credenciais administrativas.</p>
+        <?php if($error): ?><div class="message error" role="alert"><?= ple($error) ?></div><?php endif; ?>
+        <form method="post" autocomplete="on">
+          <input type="hidden" name="csrf" value="<?= ple($_SESSION['platform_login_csrf']) ?>">
+          <div class="field"><label for="email">E-mail administrativo</label><input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
+          <div class="field"><label for="password">Senha</label><input id="password" type="password" name="password" autocomplete="current-password" required></div>
+          <button class="submit" type="submit">Acessar painel SaaS →</button>
+        </form>
+        <div class="switch"><a href="login.php" class="link">← Voltar ao acesso do produtor</a></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

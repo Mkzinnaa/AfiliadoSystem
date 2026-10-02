@@ -93,19 +93,17 @@ body.app-shell .topnav a:hover { color: var(--green); }
 
 body.app-shell .main-nav a.selected,
 body.app-shell .topnav a.active {
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 8px;
+  background: var(--pale);
   color: var(--green);
   font-weight: 700;
 }
 
 body.app-shell .main-nav a.selected::after,
 body.app-shell .topnav a.active::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  background: var(--green);
+  display: none !important;
 }
 
 body.app-shell .top-actions,
@@ -338,8 +336,8 @@ body.app-shell .empty-state { color: #89968f; }
   body.app-shell .topnav::-webkit-scrollbar { display: none; }
   body.app-shell .main-nav a,
   body.app-shell .topnav a { flex: 0 0 auto; }
-  body.app-shell .main-nav a.selected::after,
-  body.app-shell .topnav a.active::after { bottom: 0; }
+  body.app-shell .main-nav a.selected,
+  body.app-shell .topnav a.active { height: 32px; }
   body.app-shell .top-actions,
   body.app-shell .right { gap: 10px; font-size: 11px; }
   body.app-shell .top-actions span,
