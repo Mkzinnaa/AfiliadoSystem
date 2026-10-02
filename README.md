@@ -93,6 +93,8 @@ No módulo Metas, campanhas podem ser direcionadas a toda a equipe, a um grupo o
 
 Campanhas também aceitam a métrica **Clientes novos**. Os webhooks guardam apenas um identificador HMAC do cliente (e-mail normalizado ou ID informado pelo checkout), nunca o e-mail em texto aberto. A contagem exige que a integração envie uma identidade consistente; pedidos históricos sem esse dado não entram nessa métrica.
 
+Na tela Afiliados, configure a página HTTPS de vendas do produto. Os links de divulgação passam por `go.php`, registram visitantes únicos por afiliado com um cookie aleatório e depois redirecionam para esse destino. A conversão exibida é estimada por pedidos aprovados atribuídos ao afiliado divididos por visitantes únicos; não é uma associação individual de cada clique ao pedido.
+
 ## Notas de produção
 
 O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.

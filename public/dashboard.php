@@ -11,6 +11,9 @@ $commissionTotal = array_sum(array_map(static fn($a) => (float)$a['sales'] * (fl
 $activeCount = count(array_filter($affiliates, static fn($a) => $a['status'] === 'active'));
 $pendingCount = count(array_filter($affiliates, static fn($a) => $a['status'] === 'pending'));
 $ordersTotal = array_sum(array_column($affiliates, 'orders'));
+$conversionOrders=app_db()->prepare("SELECT COUNT(*) FROM sales_orders WHERE tenant_id=? AND status='approved' AND affiliate_id IS NOT NULL");$conversionOrders->execute([tenant_id()]);$conversionOrderCount=(int)$conversionOrders->fetchColumn();
+$conversionVisits=app_db()->prepare('SELECT COUNT(*) FROM (SELECT affiliate_id,visitor_hash FROM affiliate_clicks WHERE tenant_id=? GROUP BY affiliate_id,visitor_hash) unique_visitors');$conversionVisits->execute([tenant_id()]);$conversionVisitCount=(int)$conversionVisits->fetchColumn();
+$conversionRate=$conversionVisitCount>0?($conversionOrderCount/$conversionVisitCount)*100:0;
 $ranking = $affiliates;
 usort($ranking, static fn($a, $b) => (float)$b['sales'] <=> (float)$a['sales']);
 $campaigns = campaigns_read_all();
@@ -47,6 +50,7 @@ $chartValues=[];foreach($chartAmounts as $periodKey=>$amounts)$chartValues[$peri
     <article class="stat-card"><div class="stat-label">Comissões estimadas <span class="stat-icon">◇</span></div><strong><?= $formatMoney($commissionTotal) ?></strong><small>Com base nas comissões cadastradas</small></article>
     <article class="stat-card"><div class="stat-label">Afiliados ativos <span class="stat-icon">♙</span></div><strong><?= $activeCount ?></strong><small><?= $pendingCount ?> aguardando aprovação</small></article>
     <article class="stat-card"><div class="stat-label">Vendas concluídas <span class="stat-icon">▤</span></div><strong><?= number_format((int)$ordersTotal, 0, ',', '.') ?></strong><small>Pedidos atribuídos aos afiliados</small></article>
+    <article class="stat-card"><div class="stat-label">Conversão estimada <span class="stat-icon">%</span></div><strong><?= number_format($conversionRate, 2, ',', '.') ?>%</strong><small><?= number_format($conversionOrderCount,0,',','.') ?> pedidos aprovados ÷ <?= number_format($conversionVisitCount,0,',','.') ?> visitas únicas</small></article>
   </section>
   <section class="dashboard-grid">
     <article class="panel chart-panel"><div class="panel-head"><div><h2>Movimento de vendas</h2><p><?= $integratedSales?'Pedidos aprovados recebidos pela Kiwify':'Série ilustrativa até a primeira integração' ?></p></div><select id="chartPeriod" aria-label="Período do gráfico"><option value="week">Últimos 7 dias</option><option value="month">Últimos 30 dias</option><option value="quarter">Últimos 90 dias</option></select></div>

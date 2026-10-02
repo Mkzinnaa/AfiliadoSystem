@@ -7,7 +7,7 @@ if(campaignModal)campaignModal.addEventListener('click',event=>{if(event.target=
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&campaignModal?.classList.contains('show'))location.href='campaigns.php'});
 const metric=document.querySelector('[name="metric"]');
 const target=document.querySelector('[name="target"]');
-if(metric&&target)metric.addEventListener('change',()=>{const countMetric=metric.value==='orders'||metric.value==='new_customers';target.step=countMetric?'1':'0.01';target.placeholder=countMetric?'50':'50000'});
+if(metric&&target)metric.addEventListener('change',()=>{const countMetric=metric.value==='orders'||metric.value==='new_customers';const rateMetric=metric.value==='conversion';target.step=countMetric?'1':'0.01';target.min=rateMetric?'0.01':'1';if(rateMetric)target.max='100';else target.removeAttribute('max');target.placeholder=rateMetric?'4.8':(countMetric?'50':'50000')});
 const campaignScope=document.getElementById('campaignScope');
 const campaignGroupField=document.getElementById('campaignGroupField');
 const campaignAffiliateField=document.getElementById('campaignAffiliateField');
