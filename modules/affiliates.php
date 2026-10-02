@@ -64,6 +64,36 @@ function affiliate_find(array $affiliates, string $id): ?array
     return null;
 }
 
+function affiliate_apply(string $workspaceSlug, string $name, string $email): void
+{
+    $workspaceSlug = trim($workspaceSlug);
+    $name = trim($name);
+    $email = trim($email);
+    if (!preg_match('/^[a-z0-9-]{1,64}$/', $workspaceSlug)) throw new DomainException('Link de inscrição inválido.');
+    if ($name === '' || preg_match_all('/./us', $name) > 120 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        throw new DomainException('Informe seu nome e um e-mail válido.');
+    }
+    $pdo = app_db();
+    $workspace = $pdo->prepare('SELECT id FROM tenants WHERE slug=? LIMIT 1');
+    $workspace->execute([$workspaceSlug]);
+    $tenantId = $workspace->fetchColumn();
+    if (!$tenantId) throw new DomainException('Este programa de afiliados não está disponível.');
+    $existing = $pdo->prepare('SELECT status FROM affiliates WHERE tenant_id=? AND email=? LIMIT 1');
+    $existing->execute([$tenantId, $email]);
+    if ($existing->fetch()) throw new DomainException('Já existe uma inscrição ou cadastro com este e-mail.');
+
+    $base = affiliate_slug($name);
+    $code = $base;
+    for ($suffix = 2; ; $suffix++) {
+        $used = $pdo->prepare('SELECT 1 FROM affiliates WHERE tenant_id=? AND code=? LIMIT 1');
+        $used->execute([$tenantId, $code]);
+        if (!$used->fetchColumn()) break;
+        $code = $base . '-' . $suffix;
+    }
+    $pdo->prepare("INSERT INTO affiliates(id,tenant_id,name,email,affiliate_group,commission,status,sales,orders,code) VALUES(?,?,?,?,?,20,'pending',0,0,?)")
+        ->execute([new_id('af'), $tenantId, $name, $email, 'Novos afiliados', $code]);
+}
+
 function affiliate_initials(string $name): string
 {
     $parts = preg_split('/\s+/', trim($name)) ?: [];

@@ -87,6 +87,8 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
 - `storage/`: arquivos privados e legado;
 - `.runtime/app-data/`: credenciais MySQL e chave de integração, ignoradas pelo Git.
 
+Produtores e administradores podem copiar o link público de inscrição no módulo Afiliados. As inscrições são gravadas no espaço do produtor com status pendente; a aprovação libera o código individual e a recusa desativa a solicitação.
+
 ## Notas de produção
 
 O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.
