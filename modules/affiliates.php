@@ -23,7 +23,7 @@ function affiliate_seed_data(): array
 function affiliate_read_all(): array
 {
     $pdo = app_db(); $tenant = tenant_id();
-    $query = $pdo->prepare('SELECT id,name,email,affiliate_group AS "group",commission,status,sales,orders,code FROM affiliates WHERE tenant_id=? ORDER BY name');
+    $query = $pdo->prepare('SELECT id,name,email,affiliate_group AS "group",commission,status,sales,orders,code,hotmart_code FROM affiliates WHERE tenant_id=? ORDER BY name');
     $query->execute([$tenant]); $rows = $query->fetchAll();
     if ($rows) return $rows;
     $legacy = [];
@@ -43,8 +43,8 @@ function affiliate_write_all(array $affiliates): void
     $pdo=app_db();$tenant=tenant_id();$pdo->beginTransaction();
     try {
         $pdo->prepare('DELETE FROM affiliates WHERE tenant_id=?')->execute([$tenant]);
-        $insert=$pdo->prepare('INSERT INTO affiliates(id,tenant_id,name,email,affiliate_group,commission,status,sales,orders,code) VALUES(?,?,?,?,?,?,?,?,?,?)');
-        foreach($affiliates as $a) $insert->execute([$a['id'],$tenant,$a['name'],$a['email'],$a['group'],(float)$a['commission'],$a['status'],(float)$a['sales'],(int)$a['orders'],$a['code']]);
+        $insert=$pdo->prepare('INSERT INTO affiliates(id,tenant_id,name,email,affiliate_group,commission,status,sales,orders,code,hotmart_code) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
+        foreach($affiliates as $a) $insert->execute([$a['id'],$tenant,$a['name'],$a['email'],$a['group'],(float)$a['commission'],$a['status'],(float)$a['sales'],(int)$a['orders'],$a['code'],trim((string)($a['hotmart_code']??''))?:null]);
         $pdo->commit();
     } catch(Throwable $error) { if($pdo->inTransaction())$pdo->rollBack(); throw $error; }
 }

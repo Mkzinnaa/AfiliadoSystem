@@ -35,17 +35,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = filter_var(trim((string)($_POST['email'] ?? '')), FILTER_VALIDATE_EMAIL);
         $group = trim((string)($_POST['group'] ?? 'Novos afiliados'));
         $commission = filter_var($_POST['commission'] ?? '', FILTER_VALIDATE_FLOAT);
-        if ($name === '' || !$email || $commission === false || $commission < 0 || $commission > 100) {
-            $error = 'Preencha nome, e-mail válido e comissão entre 0 e 100%.';
+        $hotmartCode = trim((string)($_POST['hotmart_code'] ?? ''));
+        if ($name === '' || !$email || $commission === false || $commission < 0 || $commission > 100 || strlen($hotmartCode) > 100 || ($hotmartCode !== '' && !preg_match('/^[A-Za-z0-9_-]+$/', $hotmartCode))) {
+            $error = 'Preencha nome, e-mail válido, comissão entre 0 e 100% e um código Hotmart válido.';
         } else {
             foreach ($affiliates as $row) {
                 if (strcasecmp($row['email'], (string)$email) === 0 && $row['id'] !== $id) $error = 'Já existe um afiliado cadastrado com este e-mail.';
+                if ($hotmartCode !== '' && strcasecmp((string)($row['hotmart_code'] ?? ''), $hotmartCode) === 0 && $row['id'] !== $id) $error = 'Este código Hotmart já está vinculado a outro afiliado.';
             }
             if ($error === '') {
                 if ($id !== '' && affiliate_find($affiliates, $id)) {
                     foreach ($affiliates as &$row) {
                         if ($row['id'] === $id) {
-                            $row['name'] = $name; $row['email'] = (string)$email; $row['group'] = $group; $row['commission'] = (float)$commission;
+                            $row['name'] = $name; $row['email'] = (string)$email; $row['group'] = $group; $row['commission'] = (float)$commission; $row['hotmart_code'] = $hotmartCode;
                             if ($row['code'] === '') $row['code'] = affiliate_slug($name);
                         }
                     }
@@ -56,14 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $used = array_column($affiliates, 'code');
                     $base = $code; $suffix = 2;
                     while (in_array($code, $used, true)) $code = $base . '-' . $suffix++;
-                    $affiliates[] = ['id' => 'af-' . bin2hex(random_bytes(5)), 'name' => $name, 'email' => (string)$email, 'group' => $group, 'commission' => (float)$commission, 'status' => 'active', 'sales' => 0, 'orders' => 0, 'code' => $code];
+                    $affiliates[] = ['id' => 'af-' . bin2hex(random_bytes(5)), 'name' => $name, 'email' => (string)$email, 'group' => $group, 'commission' => (float)$commission, 'status' => 'active', 'sales' => 0, 'orders' => 0, 'code' => $code, 'hotmart_code' => $hotmartCode];
                     $flash = 'Afiliado cadastrado e ativado.';
                 }
                 affiliate_write_all($affiliates);
                 header('Location: affiliates.php?message=' . ($id !== '' ? 'updated' : 'created')); exit;
             }
         }
-        $editing = ['id' => $id, 'name' => $name, 'email' => (string)($_POST['email'] ?? ''), 'group' => $group, 'commission' => $commission === false ? 20 : $commission];
+        $editing = ['id' => $id, 'name' => $name, 'email' => (string)($_POST['email'] ?? ''), 'group' => $group, 'commission' => $commission === false ? 20 : $commission, 'hotmart_code' => $hotmartCode];
     }
 }
 
@@ -72,7 +74,7 @@ $search = trim((string)($_GET['q'] ?? ''));
 $statusFilter = (string)($_GET['status'] ?? 'all');
 $groupFilter = (string)($_GET['group'] ?? 'all');
 $filtered = array_values(array_filter($affiliates, static function ($a) use ($search, $statusFilter, $groupFilter) {
-    $matches = $search === '' || stripos($a['name'] . ' ' . $a['email'] . ' ' . $a['code'], $search) !== false;
+    $matches = $search === '' || stripos($a['name'] . ' ' . $a['email'] . ' ' . $a['code'] . ' ' . ($a['hotmart_code'] ?? ''), $search) !== false;
     return $matches && ($statusFilter === 'all' || $a['status'] === $statusFilter) && ($groupFilter === 'all' || $a['group'] === $groupFilter);
 }));
 $groups = array_values(array_unique(array_map(static fn($a) => (string)$a['group'], $affiliates)));
@@ -94,8 +96,8 @@ function e($value): string { return htmlspecialchars((string)$value, ENT_QUOTES,
 <section class="table-wrap"><table><thead><tr><th>Afiliado</th><th>Grupo</th><th>Vendas</th><th>Comissão</th><th>Link / código</th><th>Status</th><th>Ações</th></tr></thead><tbody>
 <?php if (!$filtered): ?><tr><td colspan="7" class="empty">Nenhum afiliado encontrado para esses filtros.</td></tr><?php endif; ?>
 <?php foreach($filtered as $affiliate): $initials = affiliate_initials($affiliate['name']); $statusLabel = ['active'=>'Ativo','pending'=>'Pendente','inactive'=>'Inativo'][$affiliate['status']] ?? 'Ativo'; $link = $origin . '/?ref=' . rawurlencode($affiliate['code']); ?>
-<tr><td><div class="affiliate"><span class="avatar"><?= e($initials) ?></span><span><b><?= e($affiliate['name']) ?></b><small><?= e($affiliate['email']) ?></small></span></div></td><td><span class="group"><?= e($affiliate['group']) ?></span></td><td>R$ <?= number_format((float)$affiliate['sales'], 2, ',', '.') ?><br><small style="color:#9aa59f"><?= (int)$affiliate['orders'] ?> vendas</small></td><td><?= e($affiliate['commission']) ?>%</td><td><button class="code copy-link" title="Copiar link" data-link="<?= e($link) ?>"><?= e($affiliate['code']) ?> ⧉</button></td><td><span class="badge <?= e($affiliate['status']) ?>"><?= e($statusLabel) ?></span></td><td><div class="row-actions"><a class="icon" style="display:grid;place-items:center;text-decoration:none" title="Editar" href="affiliates.php?edit=<?= rawurlencode($affiliate['id']) ?>">✎</a><form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?= e($csrf) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= e($affiliate['id']) ?>"><button class="icon" title="<?= $affiliate['status']==='active'?'Desativar':'Ativar' ?>" type="submit"><?= $affiliate['status']==='active'?'⏻':'✓' ?></button></form></div></td></tr>
+<tr><td><div class="affiliate"><span class="avatar"><?= e($initials) ?></span><span><b><?= e($affiliate['name']) ?></b><small><?= e($affiliate['email']) ?></small></span></div></td><td><span class="group"><?= e($affiliate['group']) ?></span></td><td>R$ <?= number_format((float)$affiliate['sales'], 2, ',', '.') ?><br><small style="color:#9aa59f"><?= (int)$affiliate['orders'] ?> vendas</small></td><td><?= e($affiliate['commission']) ?>%</td><td><button class="code copy-link" title="Copiar link" data-link="<?= e($link) ?>"><?= e($affiliate['code']) ?> ⧉</button><?php if (!empty($affiliate['hotmart_code'])): ?><br><small style="color:#9aa59f">Hotmart: <?= e($affiliate['hotmart_code']) ?></small><?php endif; ?></td><td><span class="badge <?= e($affiliate['status']) ?>"><?= e($statusLabel) ?></span></td><td><div class="row-actions"><a class="icon" style="display:grid;place-items:center;text-decoration:none" title="Editar" href="affiliates.php?edit=<?= rawurlencode($affiliate['id']) ?>">✎</a><form method="post" style="margin:0"><input type="hidden" name="csrf" value="<?= e($csrf) ?>"><input type="hidden" name="action" value="toggle"><input type="hidden" name="id" value="<?= e($affiliate['id']) ?>"><button class="icon" title="<?= $affiliate['status']==='active'?'Desativar':'Ativar' ?>" type="submit"><?= $affiliate['status']==='active'?'⏻':'✓' ?></button></form></div></td></tr>
 <?php endforeach; ?></tbody></table></section>
 <p class="note">Os dados de afiliados são armazenados separados por espaço. Valores de vendas desta demonstração são fictícios.</p></main>
-<?php if($canEdit): ?><div class="overlay <?= ($editing !== null || $error !== '' || isset($_GET['new'])) ? 'show' : '' ?>" id="modal"><div class="modal"><div class="modalhead"><h2><?= $editing ? 'Editar afiliado' : 'Adicionar afiliado' ?></h2><button class="close" type="button" id="closeBtn">×</button></div><p>Preencha os dados para organizar seu programa de afiliados.</p><form method="post"><input type="hidden" name="csrf" value="<?= e($csrf) ?>"><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= e($editing['id'] ?? '') ?>"><div class="grid"><div class="field wide"><label for="name">Nome completo</label><input id="name" name="name" value="<?= e($editing['name'] ?? '') ?>" placeholder="Ex.: Camila Souza" required></div><div class="field wide"><label for="email">E-mail</label><input id="email" name="email" type="email" value="<?= e($editing['email'] ?? '') ?>" placeholder="camila@email.com" required></div><div class="field"><label for="group">Grupo</label><select id="group" name="group"><?php foreach(array_unique(array_merge(['Elite','Profissionais','Novos afiliados'],$groups)) as $g): ?><option <?= ($editing['group'] ?? 'Novos afiliados')===$g?'selected':'' ?>><?= e($g) ?></option><?php endforeach; ?></select></div><div class="field"><label for="commission">Comissão (%)</label><input id="commission" name="commission" type="number" min="0" max="100" step="0.5" value="<?= e($editing['commission'] ?? 20) ?>" required></div></div><div class="modalfoot"><a class="btn" href="affiliates.php">Cancelar</a><button class="btn primary" type="submit"><?= $editing ? 'Salvar alterações' : 'Cadastrar afiliado' ?></button></div></form></div></div><?php endif; ?>
+<?php if($canEdit): ?><div class="overlay <?= ($editing !== null || $error !== '' || isset($_GET['new'])) ? 'show' : '' ?>" id="modal"><div class="modal"><div class="modalhead"><h2><?= $editing ? 'Editar afiliado' : 'Adicionar afiliado' ?></h2><button class="close" type="button" id="closeBtn">×</button></div><p>Preencha os dados para organizar seu programa de afiliados.</p><form method="post"><input type="hidden" name="csrf" value="<?= e($csrf) ?>"><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= e($editing['id'] ?? '') ?>"><div class="grid"><div class="field wide"><label for="name">Nome completo</label><input id="name" name="name" value="<?= e($editing['name'] ?? '') ?>" placeholder="Ex.: Camila Souza" required></div><div class="field wide"><label for="email">E-mail</label><input id="email" name="email" type="email" value="<?= e($editing['email'] ?? '') ?>" placeholder="camila@email.com" required></div><div class="field"><label for="group">Grupo</label><select id="group" name="group"><?php foreach(array_unique(array_merge(['Elite','Profissionais','Novos afiliados'],$groups)) as $g): ?><option <?= ($editing['group'] ?? 'Novos afiliados')===$g?'selected':'' ?>><?= e($g) ?></option><?php endforeach; ?></select></div><div class="field"><label for="commission">Comissão (%)</label><input id="commission" name="commission" type="number" min="0" max="100" step="0.5" value="<?= e($editing['commission'] ?? 20) ?>" required></div><div class="field wide"><label for="hotmart_code">Código do afiliado na Hotmart (opcional)</label><input id="hotmart_code" name="hotmart_code" maxlength="100" pattern="[A-Za-z0-9_-]+" value="<?= e($editing['hotmart_code'] ?? '') ?>" placeholder="Cole o affiliate_code da Hotmart"><small>Vincula automaticamente as vendas recebidas pela integração Hotmart.</small></div></div><div class="modalfoot"><a class="btn" href="affiliates.php">Cancelar</a><button class="btn primary" type="submit"><?= $editing ? 'Salvar alterações' : 'Cadastrar afiliado' ?></button></div></form></div></div><?php endif; ?>
 <script src="assets/js/affiliates.js" defer></script></body></html>
