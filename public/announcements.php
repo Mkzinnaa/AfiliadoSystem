@@ -1,0 +1,40 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/../modules/auth.php';
+require_once __DIR__ . '/../modules/announcements.php';
+require_once __DIR__ . '/../modules/affiliates.php';
+require_once __DIR__ . '/../modules/affiliate-groups.php';
+require_once __DIR__ . '/../modules/mailer.php';
+require_login(); start_app_session();
+if (empty($_SESSION['announcement_csrf'])) $_SESSION['announcement_csrf'] = bin2hex(random_bytes(32));
+$csrf = (string)$_SESSION['announcement_csrf'];
+$affiliates = affiliate_read_all();
+$activeAffiliates = array_values(array_filter($affiliates, static fn($a) => $a['status'] === 'active'));
+$groups = array_column(affiliate_group_list(), 'name');
+$error = '';
+$flash = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_role(['owner','admin','manager']);
+    if (!hash_equals($csrf, (string)($_POST['csrf'] ?? ''))) { http_response_code(403); exit('Sessão expirada. Atualize a página.'); }
+    if (!app_mail_is_configured()) {
+        $error = 'Configure o SMTP em .runtime/app-data/mail.php antes de enviar comunicados.';
+    } else {
+        try {
+            $id = announcement_create((string)($_POST['title'] ?? ''), (string)($_POST['body'] ?? ''), (string)($_POST['audience_type'] ?? 'all'), (string)($_POST['audience_group'] ?? ''), (string)($_POST['audience_affiliate_id'] ?? ''), (string)(current_user()['id'] ?? ''));
+            header('Location: announcements.php?message=queued&id=' . rawurlencode($id)); exit;
+        } catch (DomainException $exception) { $error = $exception->getMessage(); }
+        catch (Throwable $exception) { error_log('[Vértice] Falha ao enfileirar comunicado: ' . $exception->getMessage()); $error = 'Não foi possível criar o comunicado agora.'; }
+    }
+}
+$flash = (string)($_GET['message'] ?? '') === 'queued' ? 'Comunicado enfileirado para envio aos afiliados ativos.' : '';
+$announcements = announcement_list();
+function ame(mixed $value): string { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
+$canManage = can_manage_workspace();
+?>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comunicados — Vértice</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="assets/css/announcements.css"><script src="assets/js/announcements.js" defer></script><link rel="stylesheet" href="assets/css/app-theme.css?v=2"></head><body class="app-shell">
+<header class="topbar"><a class="brand" href="dashboard.php"><span class="brand-mark">v</span> vértice<span class="brand-dot">.</span></a><nav class="main-nav"><a href="dashboard.php">Visão geral</a><a href="affiliates.php">Afiliados</a><a href="sales.php">Vendas</a><a href="campaigns.php">Metas</a><a class="selected" href="announcements.php">Comunicados</a><?php if(in_array(current_user()['role']??'', ['owner','admin'], true)): ?><a href="team.php">Equipe</a><a href="integrations.php">Integrações</a><?php endif; ?></nav><div class="top-actions"><span><?= ame(current_user()['name'] ?? '') ?></span><a href="login.php?logout=1">Sair</a></div></header>
+<main class="announce-page"><div class="crumb"><a href="dashboard.php">Workspace</a> / Comunicados</div><section class="intro"><div><span class="eyebrow">COMUNICAÇÃO COM O TIME</span><h1>Comunicados</h1><p>Envie novidades e campanhas para os afiliados ativos.</p></div><span class="smtp-state <?= app_mail_is_configured()?'ready':'missing' ?>"><?= app_mail_is_configured()?'SMTP configurado':'SMTP não configurado' ?></span></section>
+<?php if($flash): ?><div class="notice success"><?= ame($flash) ?></div><?php endif; ?><?php if($error): ?><div class="notice error"><?= ame($error) ?></div><?php endif; ?>
+<div class="announce-layout"><section class="panel compose"><div class="panel-head"><div><h2>Novo comunicado</h2><p>A mensagem será enviada individualmente por e-mail para cada destinatário.</p></div></div><?php if($canManage): ?><form method="post"><input type="hidden" name="csrf" value="<?= ame($csrf) ?>"><label>Assunto<input name="title" maxlength="120" value="<?= ame($_POST['title']??'') ?>" placeholder="Ex.: Novo desafio de vendas" required></label><label>Público<select name="audience_type" id="audienceType"><option value="all" <?= ($_POST['audience_type']??'all')==='all'?'selected':'' ?>>Todos os afiliados ativos</option><option value="group" <?= ($_POST['audience_type']??'')==='group'?'selected':'' ?>>Um grupo</option><option value="affiliate" <?= ($_POST['audience_type']??'')==='affiliate'?'selected':'' ?>>Um afiliado específico</option></select></label><label id="audienceGroupField">Grupo<select name="audience_group"><?php foreach($groups as $group): ?><option value="<?= ame($group) ?>" <?= ($_POST['audience_group']??'')===$group?'selected':'' ?>><?= ame($group) ?></option><?php endforeach; ?></select></label><label id="audienceAffiliateField">Afiliado<select name="audience_affiliate_id"><option value="">Selecione...</option><?php foreach($activeAffiliates as $affiliate): ?><option value="<?= ame($affiliate['id']) ?>" <?= ($_POST['audience_affiliate_id']??'')===$affiliate['id']?'selected':'' ?>><?= ame($affiliate['name']) ?> — <?= ame($affiliate['email']) ?></option><?php endforeach; ?></select></label><label>Mensagem<textarea name="body" maxlength="5000" rows="8" placeholder="Escreva seu comunicado..." required><?= ame($_POST['body']??'') ?></textarea><small>Até 5.000 caracteres. O destinatário recebe uma cópia individual.</small></label><button class="button primary" type="submit" <?= app_mail_is_configured()?'':'disabled' ?>>Enfileirar comunicado</button></form><?php else: ?><p class="readonly">Seu papel permite consultar o histórico, mas não criar comunicados.</p><?php endif; ?></section>
+<aside class="panel queue-info"><div class="panel-head"><div><h2>Fila de envio</h2><p>O Cron do cPanel processa até 20 mensagens por execução.</p></div></div><div class="queue-number"><?= count($announcements) ?></div><p>Comunicados recentes neste espaço</p><div class="queue-tip"><b>Primeiro envio?</b><span>Configure o SMTP e adicione ao Cron do cPanel o script <code>scripts/process-announcements.php</code>. As configurações ficam fora da pasta pública.</span></div></aside></div>
+<section class="panel history"><div class="panel-head"><div><h2>Histórico</h2><p>Últimos <?= count($announcements) ?> comunicados</p></div></div><?php if(!$announcements): ?><p class="empty">Nenhum comunicado criado ainda.</p><?php else: ?><div class="history-list"><?php foreach($announcements as $announcement): $sent=(int)$announcement['sent_count'];$failed=(int)$announcement['failed_count'];$pending=(int)$announcement['pending_count'];$status=$pending?'Na fila':($failed?($sent?'Parcial':'Falhou'):'Enviado');$audience=$announcement['audience_type']==='all'?'Todos os ativos':($announcement['audience_type']==='group'?'Grupo · '.$announcement['audience_group']:'Afiliado individual'); ?><article class="history-row"><div class="history-main"><b><?= ame($announcement['title']) ?></b><p><?= ame($audience) ?> · <?= ame(date('d/m/Y H:i',strtotime($announcement['created_at']))) ?></p><small><?= $sent ?> enviados · <?= $pending ?> pendentes · <?= $failed ?> falhas de <?= (int)$announcement['recipient_count'] ?></small></div><span class="delivery <?= $pending?'queued':($failed?'failed':'sent') ?>"><?= ame($status) ?></span></article><?php endforeach; ?></div><?php endif; ?></section></main></body></html>

@@ -75,6 +75,13 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
    ```
 
    Substitua os exemplos pelos dados exibidos pelo seu provedor de e-mail. `app_url` deve ser a URL HTTPS pública do sistema. O arquivo é privado e ignorado pelo Git.
+   O módulo **Comunicados** envia mensagens aos afiliados ativos de forma assíncrona. Para processar a fila, crie no Cron Jobs do cPanel uma tarefa para executar a cada minuto (ajuste o caminho do PHP e do repositório à hospedagem):
+
+   ```sh
+   /usr/local/bin/php /home/USUARIO/vertice/scripts/process-announcements.php
+   ```
+
+   O script processa até 20 destinatários por execução e tenta novamente falhas até três vezes. O caminho do PHP pode ser diferente no servidor; confirme-o com a hospedagem. O SMTP precisa estar configurado para os comunicados serem enviados.
 6. Garanta que o usuário PHP possa criar arquivos em `~/vertice/.runtime/app-data`; não use permissão `777`.
 7. Configure HTTPS. Para a configuração inicial do painel comercial, gere uma chave com pelo menos 32 caracteres e defina temporariamente `VERTICE_SETUP_KEY` no ambiente PHP ou grave-a em `~/vertice/.runtime/app-data/setup-key.php` como `<?php return 'CHAVE_LONGA_ALEATORIA';`. Acesse `/platform-admin-setup.php` e crie a senha exclusiva do administrador (mínimo de 14 caracteres). Depois, remova a variável ou apague o arquivo da chave.
 8. Crie a conta inicial do produtor em `/register.php`, escolhendo a senha na própria tela. O administrador comercial é um acesso separado.
@@ -90,6 +97,8 @@ Em `localhost`, um espaço demo é criado automaticamente (`mariana@novavida.com
 Produtores e administradores podem copiar o link público de inscrição no módulo Afiliados. As inscrições são gravadas no espaço do produtor com status pendente; a aprovação libera o código individual e a recusa desativa a solicitação. O link **Gerenciar grupos** permite criar categorias, renomear grupos e direcionar campanhas; ao renomear, afiliados e campanhas existentes acompanham a mudança.
 
 No módulo Metas, campanhas podem ser direcionadas a toda a equipe, a um grupo ou a um afiliado ativo. Em contas de produção, o progresso usa pedidos aprovados dentro das datas configuradas; o espaço demo mantém indicadores ilustrativos.
+
+No módulo **Comunicados**, produtores e administradores podem enviar e-mails para afiliados ativos, um grupo ou uma pessoa e acompanhar a fila e os resultados. O envio depende do SMTP e da tarefa Cron descrita acima; sem o Cron, os comunicados ficam aguardando processamento.
 
 Campanhas também aceitam a métrica **Clientes novos**. Os webhooks guardam apenas um identificador HMAC do cliente (e-mail normalizado ou ID informado pelo checkout), nunca o e-mail em texto aberto. A contagem exige que a integração envie uma identidade consistente; pedidos históricos sem esse dado não entram nessa métrica.
 
