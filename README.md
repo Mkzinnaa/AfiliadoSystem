@@ -91,6 +91,8 @@ Produtores e administradores podem copiar o link público de inscrição no mód
 
 No módulo Metas, campanhas podem ser direcionadas a toda a equipe, a um grupo ou a um afiliado ativo. Em contas de produção, o progresso usa pedidos aprovados dentro das datas configuradas; o espaço demo mantém indicadores ilustrativos.
 
+Campanhas também aceitam a métrica **Clientes novos**. Os webhooks guardam apenas um identificador HMAC do cliente (e-mail normalizado ou ID informado pelo checkout), nunca o e-mail em texto aberto. A contagem exige que a integração envie uma identidade consistente; pedidos históricos sem esse dado não entram nessa métrica.
+
 ## Notas de produção
 
 O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.

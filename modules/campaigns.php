@@ -38,14 +38,18 @@ function campaign_values_by_affiliate(array $campaign, array $affiliates): array
     foreach ($eligible as $affiliate) $values[(string)$affiliate['id']] = 0.0;
     $tenant = tenant_id();
     if ($tenant === DEMO_USER['tenant_id']) {
-        foreach ($eligible as $affiliate) $values[(string)$affiliate['id']] = ($campaign['metric'] ?? 'revenue') === 'orders' ? (float)$affiliate['orders'] : (float)$affiliate['sales'];
+        foreach ($eligible as $affiliate) $values[(string)$affiliate['id']] = match ($campaign['metric'] ?? 'revenue') { 'orders' => (float)$affiliate['orders'], 'revenue' => (float)$affiliate['sales'], default => 0.0 };
         return $values;
     }
     $ids = array_keys($values);
     if (!$ids) return $values;
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
-    $aggregate = ($campaign['metric'] ?? 'revenue') === 'orders' ? 'COUNT(*)' : 'COALESCE(SUM(amount_cents),0)/100.0';
-    $sql = "SELECT affiliate_id,$aggregate AS progress FROM sales_orders WHERE tenant_id=? AND status='approved' AND sold_at>=? AND sold_at<DATE_ADD(?,INTERVAL 1 DAY) AND affiliate_id IN ($placeholders) GROUP BY affiliate_id";
+    if (($campaign['metric'] ?? 'revenue') === 'new_customers') {
+        $sql = "SELECT s.affiliate_id,COUNT(DISTINCT s.customer_hash) AS progress FROM sales_orders s WHERE s.tenant_id=? AND s.status='approved' AND s.customer_hash IS NOT NULL AND s.sold_at>=? AND s.sold_at<DATE_ADD(?,INTERVAL 1 DAY) AND s.affiliate_id IN ($placeholders) AND NOT EXISTS (SELECT 1 FROM sales_orders prior WHERE prior.tenant_id=s.tenant_id AND prior.customer_hash=s.customer_hash AND prior.status='approved' AND (prior.sold_at<s.sold_at OR (prior.sold_at=s.sold_at AND prior.id<s.id))) GROUP BY s.affiliate_id";
+    } else {
+        $aggregate = ($campaign['metric'] ?? 'revenue') === 'orders' ? 'COUNT(*)' : 'COALESCE(SUM(amount_cents),0)/100.0';
+        $sql = "SELECT affiliate_id,$aggregate AS progress FROM sales_orders WHERE tenant_id=? AND status='approved' AND sold_at>=? AND sold_at<DATE_ADD(?,INTERVAL 1 DAY) AND affiliate_id IN ($placeholders) GROUP BY affiliate_id";
+    }
     $stmt = app_db()->prepare($sql);
     $stmt->execute(array_merge([$tenant, $campaign['start'], $campaign['end']], $ids));
     foreach ($stmt->fetchAll() as $row) $values[(string)$row['affiliate_id']] = (float)$row['progress'];

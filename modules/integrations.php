@@ -31,6 +31,19 @@ function integration_create(string $name,string $platform='kiwify',string $provi
     return ['id'=>$id,'name'=>$name,'platform'=>$platform,'token'=>$platform==='kiwify'?$token:''];
 }
 
+function integration_customer_hash(string $tenantId, string $connectionId, string $email, string $externalId): ?string
+{
+    $email = strtolower(trim($email));
+    if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) !== false) {
+        return hash_hmac('sha256', $tenantId . "\0email\0" . $email, integration_encryption_key());
+    }
+    $externalId = trim($externalId);
+    if ($externalId !== '' && strlen($externalId) <= 160) {
+        return hash_hmac('sha256', $tenantId . "\0connection\0" . $connectionId . "\0customer\0" . $externalId, integration_encryption_key());
+    }
+    return null;
+}
+
 function integration_list(): array
 {
     $stmt=app_db()->prepare('SELECT c.id,c.name,c.platform,c.status,c.last_event_at,c.created_at,COUNT(DISTINCT e.id) AS event_count,COUNT(DISTINCT o.id) AS order_count FROM integration_connections c LEFT JOIN integration_events e ON e.connection_id=c.id LEFT JOIN sales_orders o ON o.connection_id=c.id WHERE c.tenant_id=? GROUP BY c.id ORDER BY c.created_at DESC');
@@ -64,6 +77,7 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
     $externalId=trim((string)($order['id']??''));$currency=strtoupper((string)($order['currency']??'BRL'));$amount=filter_var($order['amount']??null,FILTER_VALIDATE_FLOAT);
     if($externalId===''||strlen($externalId)>160||$amount===false||$amount<0||$amount>100000000||$currency!=='BRL')throw new DomainException('Pedido inválido: informe id, valor em reais e moeda BRL.');
     $affiliateCode=trim((string)($order['affiliate_code']??''));$affiliateEmail=trim((string)($order['affiliate_email']??''));$hotmartAffiliateCode=trim((string)($order['hotmart_affiliate_code']??''));if(strlen($affiliateCode)>100||strlen($affiliateEmail)>254||strlen($hotmartAffiliateCode)>100)throw new DomainException('Identificador de afiliado muito longo.');
+    $customerHash=integration_customer_hash((string)$connection['tenant_id'],$connectionId,(string)($order['customer_email']??''),(string)($order['customer_id']??''));
     $saleDate=(string)($order['created_at']??gmdate('Y-m-d\TH:i:s\Z'));$timestamp=strtotime($saleDate);if($timestamp===false||$timestamp>time()+86400)throw new DomainException('Data da venda inválida.');$saleDate=gmdate('Y-m-d H:i:s',$timestamp);
     $status=match($eventType){'sale.approved'=>'approved','sale.refunded'=>'refunded','sale.canceled'=>'canceled'};
     $pdo->beginTransaction();
@@ -71,8 +85,8 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
         $duplicate=$pdo->prepare('SELECT id FROM integration_events WHERE connection_id=? AND external_event_id=?');$duplicate->execute([$connectionId,$eventId]);
         if($duplicate->fetchColumn()){$pdo->commit();return ['duplicate'=>true,'message'=>'Evento já processado.'];}
         $affiliateId=null;$storedAffiliateCode=$affiliateCode;if($affiliateCode!==''||$affiliateEmail!==''||$hotmartAffiliateCode!==''){$affiliate=$pdo->prepare('SELECT id,code FROM affiliates WHERE tenant_id=? AND (LOWER(code)=LOWER(?) OR LOWER(email)=LOWER(?) OR LOWER(hotmart_code)=LOWER(?)) LIMIT 1');$affiliate->execute([$connection['tenant_id'],$affiliateCode,$affiliateEmail,$hotmartAffiliateCode]);$matched=$affiliate->fetch();if($matched){$affiliateId=(string)$matched['id'];$storedAffiliateCode=(string)$matched['code'];}elseif($affiliateEmail!=='')$storedAffiliateCode='';}
-        $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),amount_cents=VALUES(amount_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
-        $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$affiliateId,$storedAffiliateCode,(int)round((float)$amount*100),$currency,$status,$saleDate]);
+        $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,affiliate_id,affiliate_code,customer_hash,amount_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),customer_hash=COALESCE(VALUES(customer_hash),customer_hash),amount_cents=VALUES(amount_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
+        $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$affiliateId,$storedAffiliateCode,$customerHash,(int)round((float)$amount*100),$currency,$status,$saleDate]);
         $pdo->prepare('INSERT INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,?,?)')->execute([new_id('evt'),$connection['tenant_id'],$connectionId,$eventId,$eventType,'processed',($affiliateCode!==''||$affiliateEmail!==''||$hotmartAffiliateCode!=='')&&$affiliateId===null?'Pedido recebido sem correspondência de afiliado.':'']);
         $pdo->prepare('UPDATE integration_connections SET last_event_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$connectionId]);
         $refresh=$pdo->prepare("UPDATE affiliates SET sales=COALESCE((SELECT SUM(amount_cents)/100.0 FROM sales_orders WHERE affiliate_id=affiliates.id AND tenant_id=affiliates.tenant_id AND status='approved'),0),orders=(SELECT COUNT(*) FROM sales_orders WHERE affiliate_id=affiliates.id AND tenant_id=affiliates.tenant_id AND status='approved') WHERE tenant_id=? AND id IN (SELECT affiliate_id FROM sales_orders WHERE connection_id=? AND affiliate_id IS NOT NULL)");$refresh->execute([$connection['tenant_id'],$connectionId]);
@@ -93,8 +107,9 @@ function kiwify_handle_webhook(string $connectionId,string $signature,string $ra
     if($eventType==='')return integration_record_ignored_event($conn,$payload);
     $orderId=trim((string)($payload['order_id']??''));$amountCents=filter_var($payload['Commissions']['charge_amount']??null,FILTER_VALIDATE_INT);$currency=strtoupper((string)($payload['Commissions']['currency']??''));if($amountCents===false||$amountCents===null)throw new DomainException('Evento Kiwify sem o valor Commissions.charge_amount em centavos.');
     $affiliateEmail='';foreach(($payload['Commissions']['commissioned_stores']??[]) as $store){if(is_array($store)&&strtolower((string)($store['type']??''))==='affiliate'){$affiliateEmail=(string)($store['email']??'');break;}}
+    $customer=is_array($payload['Customer']??null)?$payload['Customer']:(is_array($payload['customer']??null)?$payload['customer']:[]);
     $eventSuffix=$eventName!==''?$eventName:$orderStatus;$eventId=(string)($payload['webhook_event_id']??($orderId.':'.$eventSuffix));
-    return integration_handle_webhook($connectionId,$secret,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$orderId,'amount'=>(float)$amountCents/100,'currency'=>$currency,'affiliate_email'=>$affiliateEmail,'created_at'=>$payload['approved_date']??$payload['created_at']??gmdate('c')]]);
+    return integration_handle_webhook($connectionId,$secret,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$orderId,'amount'=>(float)$amountCents/100,'currency'=>$currency,'affiliate_email'=>$affiliateEmail,'customer_email'=>(string)($customer['email']??''),'customer_id'=>(string)($customer['id']??''),'created_at'=>$payload['approved_date']??$payload['created_at']??gmdate('c')]]);
 }
 
 function hotmart_handle_webhook(string $connectionId,string $hottok,string $rawBody): array
@@ -118,11 +133,12 @@ function hotmart_handle_webhook(string $connectionId,string $hottok,string $rawB
     if($currency!=='BRL')return integration_record_ignored_event($connection,$payload,'Moeda '.$currency.' não contabilizada; o painel agrega valores em BRL.');
     $affiliates=is_array($data['affiliates']??null)?$data['affiliates']:[];$hotmartCode='';
     foreach($affiliates as $affiliate){if(is_array($affiliate)&&trim((string)($affiliate['affiliate_code']??''))!==''){$hotmartCode=trim((string)$affiliate['affiliate_code']);break;}}
+    $buyer=is_array($data['buyer']??null)?$data['buyer']:[];
     if(strlen($hotmartCode)>100)throw new DomainException('Código de afiliado Hotmart muito longo.');
     $dateValue=$purchase['approved_date']??$purchase['order_date']??null;$saleDate=gmdate('Y-m-d H:i:s');
     if(is_numeric($dateValue)){$timestamp=(int)$dateValue;if($timestamp>9999999999)$timestamp=(int)floor($timestamp/1000);if($timestamp<0||$timestamp>time()+86400)throw new DomainException('Data da compra Hotmart inválida.');$saleDate=gmdate('Y-m-d H:i:s',$timestamp);}
     elseif(is_string($dateValue)&&$dateValue!==''){$timestamp=strtotime($dateValue);if($timestamp===false||$timestamp>time()+86400)throw new DomainException('Data da compra Hotmart inválida.');$saleDate=gmdate('Y-m-d H:i:s',$timestamp);}
-    return integration_handle_webhook($connectionId,$hottok,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$transaction,'amount'=>(float)$amount,'currency'=>$currency,'hotmart_affiliate_code'=>$hotmartCode,'created_at'=>$saleDate]]);
+    return integration_handle_webhook($connectionId,$hottok,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$transaction,'amount'=>(float)$amount,'currency'=>$currency,'hotmart_affiliate_code'=>$hotmartCode,'customer_email'=>(string)($buyer['email']??''),'customer_id'=>(string)($buyer['id']??''),'created_at'=>$saleDate]]);
 }
 
 function eduzz_handle_webhook(string $connectionId,string $signature,string $rawBody): array
@@ -141,8 +157,8 @@ function eduzz_handle_webhook(string $connectionId,string $signature,string $raw
     $price=$data['paid']??$data['price']??[];$amount=filter_var(is_array($price)?($price['value']??null):null,FILTER_VALIDATE_FLOAT);$currency=strtoupper((string)(is_array($price)?($price['currency']??'BRL'):'BRL'));
     if($amount===false||$amount===null||$amount<0||$amount>100000000)throw new DomainException('Fatura Eduzz sem valor válido.');
     if($currency!=='BRL')return integration_record_ignored_event($connection,$payload,'Moeda '.$currency.' não contabilizada; o painel agrega valores em BRL.');
-    $affiliate=is_array($data['affiliate']??null)?$data['affiliate']:[];$affiliateEmail=trim((string)($affiliate['email']??''));
+    $affiliate=is_array($data['affiliate']??null)?$data['affiliate']:[];$affiliateEmail=trim((string)($affiliate['email']??''));$customer=is_array($data['customer']??null)?$data['customer']:(is_array($data['client']??null)?$data['client']:[]);
     $dateValue=$data['paidAt']??$data['createdAt']??$payload['sentDate']??null;$saleDate=gmdate('Y-m-d H:i:s');
     if(is_string($dateValue)&&$dateValue!==''){$timestamp=strtotime($dateValue);if($timestamp===false||$timestamp>time()+86400)throw new DomainException('Data da fatura Eduzz inválida.');$saleDate=gmdate('Y-m-d H:i:s',$timestamp);}
-    return integration_handle_webhook($connectionId,$secret,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$invoiceId,'amount'=>(float)$amount,'currency'=>$currency,'affiliate_email'=>$affiliateEmail,'created_at'=>$saleDate]]);
+    return integration_handle_webhook($connectionId,$secret,['event_id'=>$eventId,'type'=>$eventType,'order'=>['id'=>$invoiceId,'amount'=>(float)$amount,'currency'=>$currency,'affiliate_email'=>$affiliateEmail,'customer_email'=>(string)($customer['email']??''),'customer_id'=>(string)($customer['id']??''),'created_at'=>$saleDate]]);
 }
