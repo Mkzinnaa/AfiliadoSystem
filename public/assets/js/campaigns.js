@@ -1,0 +1,10 @@
+const campaignModal=document.getElementById('campaignModal');
+const openCampaign=document.getElementById('newCampaign');
+const closeCampaign=document.getElementById('closeModal');
+if(openCampaign&&campaignModal)openCampaign.addEventListener('click',()=>campaignModal.classList.add('show'));
+if(closeCampaign)closeCampaign.addEventListener('click',()=>location.href='campaigns.php');
+if(campaignModal)campaignModal.addEventListener('click',event=>{if(event.target===campaignModal)location.href='campaigns.php'});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&campaignModal?.classList.contains('show'))location.href='campaigns.php'});
+const metric=document.querySelector('[name="metric"]');
+const target=document.querySelector('[name="target"]');
+if(metric&&target)metric.addEventListener('change',()=>{target.step=metric.value==='orders'?'1':'0.01';target.placeholder=metric.value==='orders'?'100':'50000'});

@@ -1,0 +1,1 @@
+.register-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.register-fields .wide{grid-column:1/-1}.form-wrap{max-width:520px}.form-wrap .sub{margin-bottom:24px}.terms{margin-top:18px;font-size:12px;color:#84908b;text-align:center}@media(max-width:600px){.register-fields{grid-template-columns:1fr}.register-fields .wide{grid-column:auto}}

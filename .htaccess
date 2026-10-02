@@ -1,0 +1,7 @@
+# If the hosting account must use the repository root as document root,
+# serve only the public/ directory. Prefer setting the domain document root
+# directly to public/ in cPanel.
+Options -Indexes
+RewriteEngine On
+RewriteRule ^public/ - [L]
+RewriteRule ^(.*)$ public/$1 [L]
