@@ -2,6 +2,8 @@
 
 Aplicação PHP para gestão de espaços de produtores, afiliados, vendas, campanhas, equipe e integração de pedidos via webhooks da Kiwify, Hotmart e Eduzz. **MySQL é o único banco suportado.**
 
+O painel também pode ser instalado no celular como PWA. No Android, use **Instalar app** ou **Adicionar à tela inicial** no navegador. No iPhone/iPad, abra em Safari, toque em **Compartilhar** e escolha **Adicionar à Tela de Início**. A instalação exige HTTPS (ou localhost no desenvolvimento). Telas autenticadas e dados do produtor continuam sendo carregados do servidor; offline, o app mostra apenas uma página informativa e não guarda vendas ou dados pessoais no cache. A publicação na Google Play ou App Store ainda exige uma etapa futura de empacotamento nativo e análise das lojas.
+
 ## Requisitos
 
 - PHP 8.1 ou superior;

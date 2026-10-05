@@ -50,7 +50,7 @@ if (!$workspace) http_response_code(404);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/affiliate-apply.css">
-</head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#176b50"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script></head>
 <body>
 <main class="card">
     <a class="brand" href="login.php"><span>v</span> vértice<em>.</em></a>

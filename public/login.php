@@ -70,7 +70,7 @@ $mode = ($_POST['action'] ?? $_GET['action'] ?? 'login') === 'forgot' ? 'forgot'
   <link rel="stylesheet" href="assets/css/login-access.css">
   <link rel="stylesheet" href="assets/css/password-toggle.css">
   <script src="assets/js/password-toggle.js" defer></script>
-</head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#176b50"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script></head>
 <body><main class="layout">
   <section class="story"><div class="brand"><span class="mark">v</span> vértice<em>.</em></div><div class="copy"><div class="eyebrow">SUA OPERAÇÃO, EM UM SÓ LUGAR</div><h1>Boas parcerias<br>fazem crescer.</h1><p>Gerencie seus afiliados, acompanhe resultados e transforme metas em conquistas.</p></div><div class="quote">“Finalmente consigo enxergar toda a operação em um só lugar.”<b>Mariana Costa · NovaVida Store</b></div></section>
   <section class="form-side"><div class="form-wrap">

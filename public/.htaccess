@@ -1,4 +1,5 @@
 Options -Indexes
+AddType application/manifest+json .webmanifest
 DirectoryIndex index.php
 
 # Block dotfiles and accidental backups/config/database artifacts.

@@ -29,7 +29,7 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
   <link rel="stylesheet" href="assets/css/login-access.css">
   <link rel="stylesheet" href="assets/css/password-toggle.css">
   <script src="assets/js/password-toggle.js" defer></script>
-</head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#176b50"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script></head>
 <body>
   <main class="layout">
     <section class="story">
