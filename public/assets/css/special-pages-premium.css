@@ -1,0 +1,157 @@
+/* Shared AFFILIEY visual language for invitation, application and SaaS admin screens. */
+:root {
+  --aff-bg: #0b0d10;
+  --aff-surface: #15171b;
+  --aff-surface-raised: #1b1e23;
+  --aff-border: #2b2f36;
+  --aff-text: #f3f4f6;
+  --aff-muted: #a1a7b2;
+  --aff-gold: #f59e0b;
+  --aff-gold-dark: #d97706;
+}
+
+body.access-page,
+body.auth-page.access-page {
+  background: radial-gradient(ellipse at 50% 0, rgb(245 158 11 / 8%), transparent 34rem), var(--aff-bg);
+  color: var(--aff-text);
+}
+body.access-page .form-wrap,
+body.auth-page.access-page .auth-card {
+  border: 1px solid var(--aff-border);
+  border-radius: 20px;
+  background: linear-gradient(155deg, #17191d, #121418 78%);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 34%);
+}
+body.auth-page.access-page { display: grid; place-items: center; padding: 24px; }
+body.auth-page.access-page .auth-card { width: min(100%, 500px); padding: 34px; }
+body.auth-page.access-page .auth-card h1,
+body.auth-page.access-page .auth-card label { color: var(--aff-text); }
+body.auth-page.access-page .auth-card .muted,
+body.auth-page.access-page .auth-card .foot,
+body.auth-page.access-page .auth-card small { color: var(--aff-muted); }
+body.auth-page.access-page .auth-card input:not([type=checkbox]) {
+  border: 1px solid #34373e; border-radius: 10px; background: #202227; color: var(--aff-text);
+}
+body.auth-page.access-page .auth-card input:focus { border-color: var(--aff-gold); box-shadow: 0 0 0 3px rgb(245 158 11 / 13%); outline: 0; }
+body.auth-page.access-page .auth-card .brand { margin-bottom: 26px; }
+
+body.affiliate-apply-page {
+  min-height: 100vh; padding: 24px; display: grid; place-items: center; color: var(--aff-text);
+  background: radial-gradient(ellipse at 50% 0, rgb(245 158 11 / 8%), transparent 34rem), var(--aff-bg);
+}
+body.affiliate-apply-page .card {
+  width: min(100%, 500px); padding: 36px; border: 1px solid var(--aff-border); border-radius: 20px;
+  background: linear-gradient(155deg, #17191d, #121418 78%); color: var(--aff-text);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 34%);
+}
+body.affiliate-apply-page .card h1 { color: var(--aff-text); font-size: clamp(24px, 5vw, 30px); }
+body.affiliate-apply-page .card .sub,
+body.affiliate-apply-page .card .privacy { color: var(--aff-muted); }
+body.affiliate-apply-page .card form label { color: #d1d5db; }
+body.affiliate-apply-page .card form input {
+  border: 1px solid #34373e; border-radius: 10px; background: #202227; color: var(--aff-text);
+}
+body.affiliate-apply-page .card form input:focus { border-color: var(--aff-gold); box-shadow: 0 0 0 3px rgb(245 158 11 / 13%); outline: 0; }
+body.affiliate-apply-page .card .success-icon { background: rgb(245 158 11 / 12%); color: #fbbf24; }
+body.affiliate-apply-page .card .message { border-color: #673d38; background: #2a1d1c; color: #f3a59b; }
+body.affiliate-apply-page .brand { margin-bottom: 30px; }
+
+body.platform-admin-page { min-height: 100vh; background: var(--aff-bg); color: var(--aff-text); }
+body.platform-admin-page .admin-top {
+  position: sticky; top: 0; z-index: 5; height: 72px; border-bottom: 1px solid var(--aff-border);
+  background: rgb(17 19 23 / 94%); backdrop-filter: blur(14px);
+}
+body.platform-admin-page .admin-user { color: var(--aff-muted); }
+body.platform-admin-page .admin-user a,
+body.platform-admin-page .back { color: #fbbf24; }
+body.platform-admin-page .page-intro h1,
+body.platform-admin-page .panel-heading h2 { color: var(--aff-text); }
+body.platform-admin-page .page-intro p,
+body.platform-admin-page .panel-heading p,
+body.platform-admin-page .metric-grid article span,
+body.platform-admin-page .footnote { color: var(--aff-muted); }
+body.platform-admin-page .metric-grid article,
+body.platform-admin-page .panel,
+body.platform-admin-page .plan-card {
+  border-color: var(--aff-border); border-radius: 15px; background: var(--aff-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 13%);
+}
+body.platform-admin-page .metric-grid article b { color: var(--aff-text); }
+body.platform-admin-page input:not([type=checkbox]),
+body.platform-admin-page select,
+body.platform-admin-page textarea { border-color: #34373e !important; background: #202227 !important; color: var(--aff-text) !important; }
+body.platform-admin-page .filters input,
+body.platform-admin-page .filters select { border-radius: 10px; }
+body.platform-admin-page .account-list,
+body.platform-admin-page .account { border-color: var(--aff-border); }
+body.platform-admin-page .workspace b,
+body.platform-admin-page .plan-name,
+body.platform-admin-page .edit-sub label,
+body.platform-admin-page .plan-card label { color: #e5e7eb; }
+body.platform-admin-page .workspace small,
+body.platform-admin-page .plan-name small,
+body.platform-admin-page .date { color: var(--aff-muted); }
+body.platform-admin-page .edit-sub { border: 1px solid var(--aff-border); background: #111317; }
+body.platform-admin-page .status.active { background: rgb(245 158 11 / 13%); color: #fbbf24; }
+body.platform-admin-page .status.trial { background: #1d2939; color: #b7c9e2; }
+body.platform-admin-page .status.past_due { background: #332719; color: #f5c078; }
+body.platform-admin-page .status.canceled { background: #25282d; color: #aeb4be; }
+body.platform-admin-page .manual-pill { border-color: #59421f; background: rgb(245 158 11 / 9%); color: #fbbf24; }
+body.platform-admin-page .button { border-color: #34373e; background: #202227; color: var(--aff-text); }
+body.platform-admin-page .button.primary { border-color: var(--aff-gold); background: var(--aff-gold); color: #111827; }
+body.platform-admin-page .notice.success { border-color: #59421f; background: rgb(245 158 11 / 9%); color: #fbbf24; }
+body.platform-admin-page .empty { color: var(--aff-muted); }
+
+/* Commercial SaaS workspace uses the same left navigation as producer modules. */
+body.platform-admin-page .admin-sidebar {
+  position: fixed; inset: 0 auto 0 0; z-index: 20; width: 252px; padding: 25px 15px 18px;
+  display: flex; flex-direction: column; background: #111214; border-right: 1px solid #24262a;
+}
+body.platform-admin-page .admin-sidebar-brand {
+  display: flex; min-height: 48px; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 7px; padding: 0 5px; color: #8f949e; font-size: 9px; font-weight: 800; letter-spacing: 1.1px; text-decoration: none;
+}
+body.platform-admin-page .admin-sidebar-brand .brand-logo { width: 190px; max-height: 46px; }
+body.platform-admin-page .admin-sidebar-nav { display: grid; gap: 6px; margin-top: 36px; }
+body.platform-admin-page .admin-sidebar-nav a {
+  min-height: 44px; display: flex; align-items: center; padding: 0 13px; border-radius: 10px;
+  color: #a6a8ad; font-size: 13px; font-weight: 600; text-decoration: none;
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+body.platform-admin-page .admin-sidebar-nav a:hover { transform: translateX(2px); background: #202124; color: #fff; }
+body.platform-admin-page .admin-sidebar-nav a.active { background: rgb(245 158 11 / 13%); box-shadow: inset 3px 0 var(--aff-gold); color: #fbbf24; }
+body.platform-admin-page .admin-sidebar-foot { margin-top: auto; padding: 16px 8px 0; border-top: 1px solid #292b30; color: #777c85; font-size: 9px; letter-spacing: .65px; }
+body.platform-admin-page .admin-top { margin-left: 252px; padding-left: 30px; }
+body.platform-admin-page .admin-top > .brand { display: none; }
+body.platform-admin-page .admin-page { width: calc(100% - 252px); max-width: none; margin: 0 0 0 252px; padding: 32px clamp(24px, 3vw, 48px) 60px; }
+
+@media (max-width: 600px) {
+  body.auth-page.access-page { padding: 16px; }
+  body.auth-page.access-page .auth-card,
+  body.affiliate-apply-page .card { padding: 25px 21px; }
+  body.affiliate-apply-page { padding: 14px; }
+  body.platform-admin-page .admin-top { height: 64px; }
+}
+@media (max-width: 900px) and (min-width: 601px) {
+  body.platform-admin-page .admin-sidebar { width: 226px; padding-right: 12px; padding-left: 12px; }
+  body.platform-admin-page .admin-top { margin-left: 226px; }
+  body.platform-admin-page .admin-page { width: calc(100% - 226px); margin-left: 226px; padding-right: 19px; padding-left: 19px; }
+}
+@media (max-width: 600px) {
+  body.platform-admin-page .admin-sidebar {
+    position: sticky; inset: auto; width: 100%; height: auto; min-height: 0; padding: 9px 14px 8px;
+    display: block; border-right: 0; border-bottom: 1px solid var(--aff-border);
+  }
+  body.platform-admin-page .admin-sidebar-brand { min-height: 38px; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; }
+  body.platform-admin-page .admin-sidebar-brand .brand-logo { width: 42px; height: 40px; max-height: 40px; }
+  body.platform-admin-page .admin-sidebar-nav { display: flex; width: 100%; margin: 6px 0 0; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  body.platform-admin-page .admin-sidebar-nav::-webkit-scrollbar { display: none; }
+  body.platform-admin-page .admin-sidebar-nav a { min-height: 33px; flex: 0 0 auto; padding: 0 10px; font-size: 11px; }
+  body.platform-admin-page .admin-sidebar-nav a.active { box-shadow: inset 0 -2px var(--aff-gold); }
+  body.platform-admin-page .admin-sidebar-foot { display: none; }
+  body.platform-admin-page .admin-top { margin-left: 0; padding: 0 15px; }
+  body.platform-admin-page .admin-page { width: 100%; margin: 0; padding: 24px 13px 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.access-page *, body.affiliate-apply-page *, body.platform-admin-page * { scroll-behavior: auto !important; animation-duration: .01ms !important; }
+}

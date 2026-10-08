@@ -1,0 +1,424 @@
+/* Shared premium workspace treatment for non-dashboard producer modules. */
+body.app-shell:not(.dashboard-shell) {
+  --ink: #F3F4F6;
+  --muted: #9CA3AF;
+  --line: #292B30;
+  --bg: #0B0D10;
+  --green: #F59E0B;
+  --pale: rgb(245 158 11 / 10%);
+  --brand-dark: #F3F4F6;
+  --brand-tint: #211B11;
+  --shadow: 0 15px 36px rgb(0 0 0 / 18%);
+  min-height: 100vh;
+  color: #E5E7EB;
+  background:
+    radial-gradient(ellipse at 92% 0%, rgb(245 158 11 / 4%), transparent 30rem),
+    #0B0D10;
+}
+
+body.app-shell:not(.dashboard-shell) > header.topbar,
+body.app-shell:not(.dashboard-shell) > header.top {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 252px;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 27px 15px 19px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  gap: 0;
+  overflow-y: auto;
+  background: #111214;
+  border-right: 1px solid #24262A;
+  box-shadow: 12px 0 36px rgb(0 0 0 / 10%);
+  backdrop-filter: none;
+}
+body.app-shell:not(.dashboard-shell) .brand {
+  min-height: 46px;
+  justify-content: flex-start;
+  padding: 0 5px;
+}
+body.app-shell:not(.dashboard-shell) .brand-logo { width: 190px; max-height: 46px; }
+body.app-shell:not(.dashboard-shell) .main-nav,
+body.app-shell:not(.dashboard-shell) .topnav {
+  order: 2;
+  flex: 1 0 auto;
+  width: 100%;
+  height: auto;
+  margin: 36px 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  overflow: visible;
+}
+body.app-shell:not(.dashboard-shell) .main-nav a,
+body.app-shell:not(.dashboard-shell) .topnav a {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  flex: 0 0 44px;
+  padding: 0 13px;
+  display: flex;
+  align-items: center;
+  border: 0;
+  border-radius: 11px;
+  color: #A6A8AD;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color .18s ease, background .18s ease, transform .18s ease;
+}
+body.app-shell:not(.dashboard-shell) .main-nav a:hover,
+body.app-shell:not(.dashboard-shell) .topnav a:hover {
+  color: #fff;
+  background: #202124;
+  transform: translateX(2px);
+}
+body.app-shell:not(.dashboard-shell) .main-nav a.selected,
+body.app-shell:not(.dashboard-shell) .topnav a.active,
+body.app-shell:not(.dashboard-shell) .main-nav a.selected:hover,
+body.app-shell:not(.dashboard-shell) .topnav a.active:hover {
+  color: #FBBF24 !important;
+  background: rgb(245 158 11 / 13%);
+  box-shadow: inset 3px 0 #F59E0B;
+}
+body.app-shell:not(.dashboard-shell) .main-nav a.selected::after,
+body.app-shell:not(.dashboard-shell) .topnav a.active::after { display: none; }
+body.app-shell:not(.dashboard-shell) .top-actions,
+body.app-shell:not(.dashboard-shell) .right {
+  order: 3;
+  width: 100%;
+  margin: auto 0 0;
+  padding: 17px 8px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #292B30;
+  color: #C6C8CD;
+  font-size: 12px;
+}
+body.app-shell:not(.dashboard-shell) .top-actions span,
+body.app-shell:not(.dashboard-shell) .right span { color: #C6C8CD; }
+body.app-shell:not(.dashboard-shell) .top-actions a,
+body.app-shell:not(.dashboard-shell) .right a { color: #FBBF24; }
+
+body.app-shell:not(.dashboard-shell) > main {
+  width: calc(100% - 252px);
+  max-width: none;
+  min-height: 100vh;
+  margin: 0 0 0 252px;
+  padding: 34px clamp(24px, 3vw, 48px) 58px;
+  color: #E5E7EB;
+  animation: affiliey-content-in 280ms cubic-bezier(.2,.7,.2,1) both;
+}
+body.app-shell:not(.dashboard-shell) .crumb { margin-bottom: 18px; color: #777C85; }
+body.app-shell:not(.dashboard-shell) .crumb b { color: #D1D5DB; }
+body.app-shell:not(.dashboard-shell) .crumb a,
+body.app-shell:not(.dashboard-shell) .crumb .back { color: #A1A5AD; }
+body.app-shell:not(.dashboard-shell) .crumb a:hover { color: #FBBF24; }
+
+body.app-shell:not(.dashboard-shell) .intro,
+body.app-shell:not(.dashboard-shell) .welcome,
+body.app-shell:not(.dashboard-shell) .head,
+body.app-shell:not(.dashboard-shell) .page-intro {
+  position: relative;
+  min-height: 118px;
+  margin: 0 0 23px;
+  padding: 23px 27px;
+  align-items: center;
+  border: 1px solid #302719;
+  border-radius: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 90% 0%, rgb(245 158 11 / 12%), transparent 20rem),
+    linear-gradient(110deg, #17181B, #111214 82%);
+  box-shadow: 0 16px 34px rgb(0 0 0 / 14%);
+}
+body.app-shell:not(.dashboard-shell) .intro h1,
+body.app-shell:not(.dashboard-shell) .welcome h1,
+body.app-shell:not(.dashboard-shell) .head h1,
+body.app-shell:not(.dashboard-shell) .page-intro h1 {
+  color: #F9FAFB;
+  font: 750 clamp(25px, 2.6vw, 32px)/1.2 Manrope, 'DM Sans', sans-serif;
+  letter-spacing: -.8px;
+}
+body.app-shell:not(.dashboard-shell) .intro p,
+body.app-shell:not(.dashboard-shell) .welcome p,
+body.app-shell:not(.dashboard-shell) .head p,
+body.app-shell:not(.dashboard-shell) .page-intro p { color: #A1A4AC; }
+body.app-shell:not(.dashboard-shell) .eyebrow { color: #FBBF24 !important; }
+
+body.app-shell:not(.dashboard-shell) .panel,
+body.app-shell:not(.dashboard-shell) .table-wrap,
+body.app-shell:not(.dashboard-shell) .table-scroll,
+body.app-shell:not(.dashboard-shell) .table-wrap,
+body.app-shell:not(.dashboard-shell) .metric,
+body.app-shell:not(.dashboard-shell) .stat-card,
+body.app-shell:not(.dashboard-shell) .summary article,
+body.app-shell:not(.dashboard-shell) .invite-result,
+body.app-shell:not(.dashboard-shell) .roles,
+body.app-shell:not(.dashboard-shell) .campaign-card,
+body.app-shell:not(.dashboard-shell) .secret-box,
+body.app-shell:not(.dashboard-shell) .toolbar,
+body.app-shell:not(.dashboard-shell) .filters,
+body.app-shell:not(.dashboard-shell) .reward-create,
+body.app-shell:not(.dashboard-shell) .reward-summary,
+body.app-shell:not(.dashboard-shell) .rules-panel,
+body.app-shell:not(.dashboard-shell) .awards-panel,
+body.app-shell:not(.dashboard-shell) .announce-page .panel {
+  border: 1px solid #292B30;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #17181B, #141518 82%) !important;
+  color: #E5E7EB;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 14%);
+}
+body.app-shell:not(.dashboard-shell) .panel,
+body.app-shell:not(.dashboard-shell) .reward-create,
+body.app-shell:not(.dashboard-shell) .reward-summary,
+body.app-shell:not(.dashboard-shell) .rules-panel,
+body.app-shell:not(.dashboard-shell) .awards-panel { padding: 21px; }
+body.app-shell:not(.dashboard-shell) h1,
+body.app-shell:not(.dashboard-shell) h2,
+body.app-shell:not(.dashboard-shell) h3,
+body.app-shell:not(.dashboard-shell) h4,
+body.app-shell:not(.dashboard-shell) .section-heading h2,
+body.app-shell:not(.dashboard-shell) .reward-summary h2,
+body.app-shell:not(.dashboard-shell) .rule-card h3,
+body.app-shell:not(.dashboard-shell) .empty-reward b,
+body.app-shell:not(.dashboard-shell) .modal-head h2 { color: #F3F4F6 !important; }
+body.app-shell:not(.dashboard-shell) .panel-head p,
+body.app-shell:not(.dashboard-shell) .section-heading p,
+body.app-shell:not(.dashboard-shell) .rule-card > p,
+body.app-shell:not(.dashboard-shell) .reward-summary p,
+body.app-shell:not(.dashboard-shell) .reward-summary small,
+body.app-shell:not(.dashboard-shell) .empty-reward p,
+body.app-shell:not(.dashboard-shell) .empty,
+body.app-shell:not(.dashboard-shell) .note,
+body.app-shell:not(.dashboard-shell) .footnote,
+body.app-shell:not(.dashboard-shell) .readonly,
+body.app-shell:not(.dashboard-shell) .tip p,
+body.app-shell:not(.dashboard-shell) .side-panel p { color: #969AA3 !important; }
+
+body.app-shell:not(.dashboard-shell) .metric span,
+body.app-shell:not(.dashboard-shell) .stat-label,
+body.app-shell:not(.dashboard-shell) .side form label,
+body.app-shell:not(.dashboard-shell) .fields label,
+body.app-shell:not(.dashboard-shell) .reward-create label,
+body.app-shell:not(.dashboard-shell) .compose form label,
+body.app-shell:not(.dashboard-shell) .field label { color: #B7BBC2 !important; }
+body.app-shell:not(.dashboard-shell) .metric b,
+body.app-shell:not(.dashboard-shell) .summary strong,
+body.app-shell:not(.dashboard-shell) .stat-card strong,
+body.app-shell:not(.dashboard-shell) .queue-number { color: #F9FAFB; }
+body.app-shell:not(.dashboard-shell) .metric small,
+body.app-shell:not(.dashboard-shell) .metric small strong,
+body.app-shell:not(.dashboard-shell) .summary span,
+body.app-shell:not(.dashboard-shell) .stat-card small { color: #92969F; }
+
+body.app-shell:not(.dashboard-shell) input:not([type="checkbox"]):not([type="radio"]),
+body.app-shell:not(.dashboard-shell) select,
+body.app-shell:not(.dashboard-shell) textarea,
+body.app-shell:not(.dashboard-shell) .search,
+body.app-shell:not(.dashboard-shell) .linkbox input {
+  border: 1px solid #393B41;
+  border-radius: 10px;
+  background: #202125 !important;
+  color: #F3F4F6 !important;
+  box-shadow: none;
+}
+body.app-shell:not(.dashboard-shell) input::placeholder,
+body.app-shell:not(.dashboard-shell) textarea::placeholder { color: #7E838D; }
+body.app-shell:not(.dashboard-shell) input:focus,
+body.app-shell:not(.dashboard-shell) select:focus,
+body.app-shell:not(.dashboard-shell) textarea:focus {
+  border-color: #F59E0B;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 13%);
+}
+body.app-shell:not(.dashboard-shell) input:-webkit-autofill,
+body.app-shell:not(.dashboard-shell) input:-webkit-autofill:hover,
+body.app-shell:not(.dashboard-shell) input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #F3F4F6;
+  -webkit-box-shadow: 0 0 0 1000px #202125 inset;
+}
+body.app-shell:not(.dashboard-shell) .button,
+body.app-shell:not(.dashboard-shell) .btn,
+body.app-shell:not(.dashboard-shell) button:not(.link):not(.text-button):not(.close):not(.icon) {
+  border: 1px solid #393B41;
+  border-radius: 10px;
+  background: #202125;
+  color: #E5E7EB;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+body.app-shell:not(.dashboard-shell) .button:hover,
+body.app-shell:not(.dashboard-shell) .btn:hover,
+body.app-shell:not(.dashboard-shell) button:not(.link):not(.text-button):not(.close):not(.icon):hover {
+  border-color: #62502D;
+  background: #292A2E;
+}
+body.app-shell:not(.dashboard-shell) .button.primary,
+body.app-shell:not(.dashboard-shell) .btn.primary,
+body.app-shell:not(.dashboard-shell) button[type="submit"],
+body.app-shell:not(.dashboard-shell) .compose button.button {
+  border-color: #F59E0B;
+  background: linear-gradient(115deg, #FBBF24, #F59E0B);
+  color: #15120B;
+  box-shadow: 0 6px 18px rgb(245 158 11 / 14%);
+  font-weight: 750;
+}
+body.app-shell:not(.dashboard-shell) .button.primary:hover,
+body.app-shell:not(.dashboard-shell) .btn.primary:hover,
+body.app-shell:not(.dashboard-shell) button[type="submit"]:hover,
+body.app-shell:not(.dashboard-shell) .compose button.button:hover { background: #D97706; color: #fff; }
+body.app-shell:not(.dashboard-shell) .text-link,
+body.app-shell:not(.dashboard-shell) .text-action,
+body.app-shell:not(.dashboard-shell) .text-button,
+body.app-shell:not(.dashboard-shell) .back { color: #FBBF24; }
+
+body.app-shell:not(.dashboard-shell) table { width: 100%; border-collapse: separate; border-spacing: 0; }
+body.app-shell:not(.dashboard-shell) th {
+  padding: 13px 15px;
+  border-color: #292B30;
+  background: #1C1D21 !important;
+  color: #9CA3AF !important;
+  font-size: 10px;
+  letter-spacing: .7px;
+}
+body.app-shell:not(.dashboard-shell) td {
+  padding: 13px 15px;
+  border-color: #292B30 !important;
+  color: #C6C8CD !important;
+}
+body.app-shell:not(.dashboard-shell) td b,
+body.app-shell:not(.dashboard-shell) .affiliate b,
+body.app-shell:not(.dashboard-shell) .person b,
+body.app-shell:not(.dashboard-shell) .rank-name strong { color: #F3F4F6 !important; }
+body.app-shell:not(.dashboard-shell) td small,
+body.app-shell:not(.dashboard-shell) .affiliate small,
+body.app-shell:not(.dashboard-shell) .person small { color: #92969F !important; }
+body.app-shell:not(.dashboard-shell) .table-wrap,
+body.app-shell:not(.dashboard-shell) .table-scroll,
+body.app-shell:not(.dashboard-shell) .table-scroll { overflow-x: auto; }
+
+body.app-shell:not(.dashboard-shell) .rule-card,
+body.app-shell:not(.dashboard-shell) .benefit,
+body.app-shell:not(.dashboard-shell) .queue-tip,
+body.app-shell:not(.dashboard-shell) .tip,
+body.app-shell:not(.dashboard-shell) .roles article,
+body.app-shell:not(.dashboard-shell) .readonly,
+body.app-shell:not(.dashboard-shell) .target-icon,
+body.app-shell:not(.dashboard-shell) .avatar,
+body.app-shell:not(.dashboard-shell) .summary-icon,
+body.app-shell:not(.dashboard-shell) .close {
+  border-color: #303238;
+  background: #202125 !important;
+  color: #FBBF24;
+}
+body.app-shell:not(.dashboard-shell) .rule-card h3,
+body.app-shell:not(.dashboard-shell) .benefit b,
+body.app-shell:not(.dashboard-shell) .benefit span,
+body.app-shell:not(.dashboard-shell) .award-person b,
+body.app-shell:not(.dashboard-shell) .award-target b,
+body.app-shell:not(.dashboard-shell) .award-benefit b { color: #FBBF24 !important; }
+body.app-shell:not(.dashboard-shell) .rank-row,
+body.app-shell:not(.dashboard-shell) .quick-link,
+body.app-shell:not(.dashboard-shell) .history-row,
+body.app-shell:not(.dashboard-shell) .award-row,
+body.app-shell:not(.dashboard-shell) .history-list,
+body.app-shell:not(.dashboard-shell) .pending { border-color: #2B2D32 !important; }
+body.app-shell:not(.dashboard-shell) .modal {
+  border: 1px solid #34363C;
+  background: #17181B !important;
+  color: #E5E7EB;
+  box-shadow: 0 30px 90px rgb(0 0 0 / 50%);
+}
+body.app-shell:not(.dashboard-shell) .overlay { background: rgb(0 0 0 / 72%); }
+body.app-shell:not(.dashboard-shell) .notice,
+body.app-shell:not(.dashboard-shell) .flash,
+body.app-shell:not(.dashboard-shell) .smtp-state.ready,
+body.app-shell:not(.dashboard-shell) .delivery.sent,
+body.app-shell:not(.dashboard-shell) .rule-status.active,
+body.app-shell:not(.dashboard-shell) .award-state.done,
+body.app-shell:not(.dashboard-shell) .state.on,
+body.app-shell:not(.dashboard-shell) .status.active {
+  border-color: rgb(245 158 11 / 24%);
+  background: rgb(245 158 11 / 9%);
+  color: #FBBF24;
+}
+body.app-shell:not(.dashboard-shell) .notice.error,
+body.app-shell:not(.dashboard-shell) .flash.error,
+body.app-shell:not(.dashboard-shell) .message.error { border-color: #673D38; background: #2A1D1C; color: #F3A59B; }
+body.app-shell:not(.dashboard-shell) .group,
+body.app-shell:not(.dashboard-shell) .code,
+body.app-shell:not(.dashboard-shell) .benefit { background: #202125 !important; color: #D1D5DB; }
+body.app-shell:not(.dashboard-shell) .avatar,
+body.app-shell:not(.dashboard-shell) .target-icon,
+body.app-shell:not(.dashboard-shell) .summary-icon { color: #FBBF24; }
+body.app-shell:not(.dashboard-shell) .progress,
+body.app-shell:not(.dashboard-shell) .progress-track { background: #2B2D31; }
+body.app-shell:not(.dashboard-shell) .progress i,
+body.app-shell:not(.dashboard-shell) .progress-track i { background: linear-gradient(90deg, #FBBF24, #D97706); }
+
+@media (max-width: 900px) {
+  body.app-shell:not(.dashboard-shell) > header.topbar,
+  body.app-shell:not(.dashboard-shell) > header.top { width: 226px; padding: 23px 12px 17px; }
+  body.app-shell:not(.dashboard-shell) > main { width: calc(100% - 226px); margin-left: 226px; padding: 27px 19px 44px; }
+}
+@media (max-width: 760px) {
+  body.app-shell:not(.dashboard-shell) > header.topbar,
+  body.app-shell:not(.dashboard-shell) > header.top {
+    position: sticky;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    min-height: 96px;
+    padding: 9px 14px 7px;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 0 10px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid #292B30;
+    box-shadow: 0 8px 22px rgb(0 0 0 / 16%);
+  }
+  body.app-shell:not(.dashboard-shell) .brand { min-height: 38px; padding: 0; }
+  body.app-shell:not(.dashboard-shell) .brand-logo { width: 42px; height: 40px; max-height: 40px; }
+  body.app-shell:not(.dashboard-shell) .main-nav,
+  body.app-shell:not(.dashboard-shell) .topnav {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 39px;
+    margin: 5px 0 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  body.app-shell:not(.dashboard-shell) .main-nav::-webkit-scrollbar,
+  body.app-shell:not(.dashboard-shell) .topnav::-webkit-scrollbar { display: none; }
+  body.app-shell:not(.dashboard-shell) .main-nav a,
+  body.app-shell:not(.dashboard-shell) .topnav a { width: auto; height: 33px; min-height: 33px; flex: 0 0 auto; padding: 0 10px; font-size: 11px; }
+  body.app-shell:not(.dashboard-shell) .main-nav a.selected,
+  body.app-shell:not(.dashboard-shell) .topnav a.active { box-shadow: inset 0 -2px #F59E0B; }
+  body.app-shell:not(.dashboard-shell) .top-actions,
+  body.app-shell:not(.dashboard-shell) .right { order: 2; width: auto; margin: 0 0 0 auto; padding: 0; border: 0; font-size: 11px; }
+  body.app-shell:not(.dashboard-shell) .top-actions span,
+  body.app-shell:not(.dashboard-shell) .right span { max-width: 110px; }
+  body.app-shell:not(.dashboard-shell) > main { width: 100%; min-height: calc(100vh - 96px); margin: 0; padding: 23px 15px 38px; }
+  body.app-shell:not(.dashboard-shell) .intro,
+  body.app-shell:not(.dashboard-shell) .welcome,
+  body.app-shell:not(.dashboard-shell) .head,
+  body.app-shell:not(.dashboard-shell) .page-intro { min-height: 0; padding: 20px 18px; align-items: flex-start; flex-direction: column; gap: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.app-shell:not(.dashboard-shell) > main { animation: none; }
+  body.app-shell:not(.dashboard-shell) .main-nav a,
+  body.app-shell:not(.dashboard-shell) .topnav a,
+  body.app-shell:not(.dashboard-shell) .button,
+  body.app-shell:not(.dashboard-shell) .btn { transition: none; }
+}
