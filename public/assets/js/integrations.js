@@ -14,12 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
       secretInput.maxLength = platform === 'eduzz' ? 255 : 140;
       secretInput.name = platform === 'eduzz' ? 'platform_secret' : 'hottok';
     }
-    if (secretLabel) secretLabel.textContent = platform === 'eduzz' ? 'Chave de assinatura da Eduzz' : 'Hottok da Hotmart';
+    if (secretLabel) secretLabel.textContent = platform === 'eduzz' ? 'Origin secret do webhook Eduzz' : 'Hottok da Hotmart';
     if (secretHelp) secretHelp.textContent = platform === 'eduzz'
-      ? 'Use a mesma chave cadastrada na tela de segurança do webhook Eduzz.'
+      ? 'Use o valor originSecret recebido no campo data.producer.originSecret do webhook Eduzz.'
       : 'O Hottok é criptografado e não volta a ser exibido.';
     if (secretInput) {
-      secretInput.placeholder = platform === 'eduzz' ? 'Cole a chave de assinatura' : 'Cole o Hottok do webhook';
+      secretInput.placeholder = platform === 'eduzz' ? 'Cole o originSecret do webhook' : 'Cole o Hottok do webhook';
     }
     document.querySelectorAll('[data-platform-instructions]').forEach((panel) => {
       panel.hidden = panel.dataset.platformInstructions !== platform;

@@ -29,17 +29,18 @@ try {
         }
         $result = hotmart_handle_webhook($connectionId, $hottok, $raw);
     } elseif ($platform === 'eduzz') {
-        $signature = '';
-        if (function_exists('getallheaders')) {
-            foreach (getallheaders() as $name => $value) if (strcasecmp((string)$name, 'x-signature') === 0) { $signature = (string)$value; break; }
-        }
-        $signature = $signature !== '' ? $signature : (string)($_SERVER['HTTP_X_SIGNATURE'] ?? '');
-        $result = eduzz_handle_webhook($connectionId, $signature, $raw);
+        $result = eduzz_handle_webhook($connectionId, $raw);
+    } elseif ($platform === 'applyfy') {
+        $token = (string)($_GET['token'] ?? '');
+        $result = applyfy_handle_webhook($connectionId, $token, $raw);
     } else webhook_reply(404, ['ok' => false, 'message' => 'Conexão não encontrada.']);
     webhook_reply(200, ['ok' => true, 'duplicate' => (bool)($result['duplicate'] ?? false), 'ignored' => (bool)($result['ignored'] ?? false), 'message' => $result['message'] ?? 'Evento processado.']);
 } catch (DomainException $e) {
-    $code = in_array($e->getMessage(), ['Assinatura Kiwify inválida.', 'Autenticação Hotmart inválida.', 'Assinatura Eduzz inválida.'], true) ? 401 : 400;
+    $authFailure = in_array($e->getMessage(), ['Assinatura Kiwify inválida.', 'Autenticação Hotmart inválida.', 'Autenticação do webhook Eduzz inválida.', 'Autenticação do webhook Applyfy inválida.', 'Conexão não autorizada.'], true);
+    if (!$authFailure) integration_record_webhook_failure($connectionId, $raw, 'Webhook rejeitado: ' . $e->getMessage());
+    $code = $authFailure ? 401 : 400;
     webhook_reply($code, ['ok' => false, 'message' => $e->getMessage()]);
 } catch (Throwable $e) {
+    integration_record_webhook_failure($connectionId, $raw, 'Falha interna ao processar webhook; a plataforma poderá reenviar.');
     webhook_reply(500, ['ok' => false, 'message' => 'Falha ao processar o evento. A plataforma poderá reenviar.']);
 }

@@ -21,6 +21,7 @@ function app_db(): PDO
     ensure_affiliate_hotmart_code_column($pdo);
     ensure_campaign_target_affiliate_column($pdo);
     ensure_sales_customer_hash_column($pdo);
+    ensure_product_scoped_integration_schema($pdo);
     seed_subscription_plans($pdo);
     $existing = $pdo->prepare('SELECT id FROM tenants WHERE id = ?');
     $existing->execute([DEMO_USER['tenant_id']]);
@@ -69,8 +70,10 @@ function mysql_schema(): array
         "CREATE TABLE IF NOT EXISTS subscription_plans (code VARCHAR(32) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, monthly_price_cents INT NOT NULL DEFAULT 0, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)$suffix",
         "CREATE TABLE IF NOT EXISTS subscriptions (tenant_id VARCHAR(64) NOT NULL PRIMARY KEY, plan_code VARCHAR(32) NOT NULL, status VARCHAR(20) NOT NULL, started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, current_period_end DATE NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, notes VARCHAR(500) NOT NULL DEFAULT '', CONSTRAINT subscriptions_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT subscriptions_plan_fk FOREIGN KEY(plan_code) REFERENCES subscription_plans(code))$suffix",
         "CREATE TABLE IF NOT EXISTS subscription_events (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, admin_id VARCHAR(64) NOT NULL, event_type VARCHAR(50) NOT NULL, details TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY subscription_events_tenant_idx(tenant_id,created_at), CONSTRAINT subscription_events_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT subscription_events_admin_fk FOREIGN KEY(admin_id) REFERENCES platform_admins(id) ON DELETE CASCADE)$suffix",
-        "CREATE TABLE IF NOT EXISTS integration_connections (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(80) NOT NULL, platform VARCHAR(32) NOT NULL DEFAULT 'kiwify', token_hash CHAR(64) NOT NULL, secret_ciphertext VARCHAR(255) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'active', last_event_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY integrations_tenant_name_uq(tenant_id,name), KEY integrations_tenant_idx(tenant_id), CONSTRAINT integrations_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
-        "CREATE TABLE IF NOT EXISTS sales_orders (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, connection_id VARCHAR(64) NOT NULL, external_order_id VARCHAR(160) NOT NULL, affiliate_id VARCHAR(64) NULL, affiliate_code VARCHAR(100) NOT NULL DEFAULT '', customer_hash CHAR(64) NULL, amount_cents BIGINT NOT NULL, currency CHAR(3) NOT NULL DEFAULT 'BRL', status VARCHAR(20) NOT NULL, sold_at DATETIME NOT NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY sales_connection_order_uq(connection_id,external_order_id), KEY sales_orders_tenant_status_idx(tenant_id,status,sold_at), KEY sales_orders_affiliate_idx(tenant_id,affiliate_id), KEY sales_orders_customer_idx(tenant_id,customer_hash,status), CONSTRAINT sales_orders_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT sales_orders_connection_fk FOREIGN KEY(connection_id) REFERENCES integration_connections(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS integration_connections (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(80) NOT NULL, platform VARCHAR(32) NOT NULL DEFAULT 'kiwify', token_hash CHAR(64) NOT NULL, secret_ciphertext VARCHAR(512) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'active', last_event_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY integrations_tenant_name_uq(tenant_id,name), KEY integrations_tenant_idx(tenant_id), CONSTRAINT integrations_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS integration_products (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, connection_id VARCHAR(64) NOT NULL, external_product_id VARCHAR(120) NOT NULL, name VARCHAR(160) NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'active', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY integration_product_external_uq(connection_id,external_product_id), KEY integration_products_tenant_idx(tenant_id,connection_id,status), CONSTRAINT integration_products_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT integration_products_connection_fk FOREIGN KEY(connection_id) REFERENCES integration_connections(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS integration_affiliate_links (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, connection_id VARCHAR(64) NOT NULL, affiliate_id VARCHAR(64) NOT NULL, external_affiliate_id VARCHAR(120) NOT NULL, external_email VARCHAR(190) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'active', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY integration_affiliate_external_uq(connection_id,external_affiliate_id), UNIQUE KEY integration_affiliate_internal_uq(connection_id,affiliate_id), KEY integration_affiliate_tenant_idx(tenant_id,connection_id,status), CONSTRAINT integration_affiliate_link_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT integration_affiliate_link_connection_fk FOREIGN KEY(connection_id) REFERENCES integration_connections(id) ON DELETE CASCADE, CONSTRAINT integration_affiliate_link_affiliate_fk FOREIGN KEY(tenant_id,affiliate_id) REFERENCES affiliates(tenant_id,id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS sales_orders (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, connection_id VARCHAR(64) NOT NULL, external_order_id VARCHAR(160) NOT NULL, external_product_id VARCHAR(120) NOT NULL DEFAULT '', product_name VARCHAR(160) NOT NULL DEFAULT '', external_affiliate_id VARCHAR(120) NOT NULL DEFAULT '', affiliate_id VARCHAR(64) NULL, affiliate_code VARCHAR(100) NOT NULL DEFAULT '', customer_hash CHAR(64) NULL, amount_cents BIGINT NOT NULL, commission_cents BIGINT NULL, currency CHAR(3) NOT NULL DEFAULT 'BRL', status VARCHAR(20) NOT NULL, sold_at DATETIME NOT NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY sales_connection_order_uq(connection_id,external_order_id), KEY sales_orders_tenant_status_idx(tenant_id,status,sold_at), KEY sales_orders_affiliate_idx(tenant_id,affiliate_id), KEY sales_orders_customer_idx(tenant_id,customer_hash,status), KEY sales_orders_product_idx(tenant_id,connection_id,external_product_id), CONSTRAINT sales_orders_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT sales_orders_connection_fk FOREIGN KEY(connection_id) REFERENCES integration_connections(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS integration_events (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, connection_id VARCHAR(64) NOT NULL, external_event_id VARCHAR(160) NOT NULL, event_type VARCHAR(80) NOT NULL, result VARCHAR(32) NOT NULL, message VARCHAR(500) NOT NULL DEFAULT '', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY integration_connection_event_uq(connection_id,external_event_id), KEY integration_events_tenant_created_idx(tenant_id,created_at), CONSTRAINT integration_events_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT integration_events_connection_fk FOREIGN KEY(connection_id) REFERENCES integration_connections(id) ON DELETE CASCADE)$suffix",
     ];
 }
@@ -78,7 +81,12 @@ function mysql_schema(): array
 function ensure_integration_secret_column(PDO $pdo): void
 {
     $check = $pdo->query("SHOW COLUMNS FROM integration_connections LIKE 'secret_ciphertext'");
-    if (!$check->fetch()) $pdo->exec("ALTER TABLE integration_connections ADD COLUMN secret_ciphertext VARCHAR(255) NOT NULL DEFAULT ''");
+    $column = $check->fetch(PDO::FETCH_ASSOC);
+    if (!$column) {
+        $pdo->exec("ALTER TABLE integration_connections ADD COLUMN secret_ciphertext VARCHAR(512) NOT NULL DEFAULT ''");
+    } elseif (preg_match('/varchar\\((\\d+)\\)/i', (string)($column['Type'] ?? ''), $match) && (int)$match[1] < 512) {
+        $pdo->exec("ALTER TABLE integration_connections MODIFY COLUMN secret_ciphertext VARCHAR(512) NOT NULL DEFAULT ''");
+    }
 }
 
 function ensure_affiliate_hotmart_code_column(PDO $pdo): void
@@ -103,6 +111,22 @@ function ensure_sales_customer_hash_column(PDO $pdo): void
     if (!$column->fetch()) $pdo->exec('ALTER TABLE sales_orders ADD COLUMN customer_hash CHAR(64) NULL AFTER affiliate_code');
     $index = $pdo->query("SHOW INDEX FROM sales_orders WHERE Key_name='sales_orders_customer_idx'");
     if (!$index->fetch()) $pdo->exec('ALTER TABLE sales_orders ADD KEY sales_orders_customer_idx(tenant_id,customer_hash,status)');
+}
+
+function ensure_product_scoped_integration_schema(PDO $pdo): void
+{
+    $columns = [
+        'external_product_id' => "ALTER TABLE sales_orders ADD COLUMN external_product_id VARCHAR(120) NOT NULL DEFAULT '' AFTER external_order_id",
+        'product_name' => "ALTER TABLE sales_orders ADD COLUMN product_name VARCHAR(160) NOT NULL DEFAULT '' AFTER external_product_id",
+        'external_affiliate_id' => "ALTER TABLE sales_orders ADD COLUMN external_affiliate_id VARCHAR(120) NOT NULL DEFAULT '' AFTER product_name",
+        'commission_cents' => "ALTER TABLE sales_orders ADD COLUMN commission_cents BIGINT NULL AFTER amount_cents",
+    ];
+    foreach ($columns as $name => $alter) {
+        $stmt = $pdo->query('SHOW COLUMNS FROM sales_orders LIKE ' . $pdo->quote($name));
+        if (!$stmt->fetch()) $pdo->exec($alter);
+    }
+    $index = $pdo->query("SHOW INDEX FROM sales_orders WHERE Key_name='sales_orders_product_idx'");
+    if (!$index->fetch()) $pdo->exec('ALTER TABLE sales_orders ADD KEY sales_orders_product_idx(tenant_id,connection_id,external_product_id)');
 }
 
 function seed_subscription_plans(PDO $pdo): void

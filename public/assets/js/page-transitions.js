@@ -17,11 +17,12 @@
     loader.setAttribute('aria-label', 'Carregando página');
     loader.innerHTML = `
       <div class="affiliey-loader-content">
-        <picture class="affiliey-loader-brand">
-          <source media="(max-width: 640px)" srcset="/brand/affiliey-symbol.png">
-          <img src="/brand/affiliey-logo-light.png" alt="AFFILIEY" width="220" height="44">
-        </picture>
-        <p class="affiliey-loader-label">Preparando seu espaço</p>
+        <div class="affiliey-loader-brand" aria-hidden="true">
+          <img src="/brand/affiliey-symbol.png" alt="" width="65" height="65">
+        </div>
+        <div class="affiliey-loader-wordmark">AFFILIEY<span>PLATAFORMA DE PERFORMANCE</span></div>
+        <div class="affiliey-loader-signal"><i></i><span>Conectando ao seu espaço</span></div>
+        <p class="affiliey-loader-label">Preparando seu painel com segurança</p>
         <div class="affiliey-loader-progress" aria-hidden="true"><span></span></div>
         <div class="affiliey-loader-skeleton" aria-hidden="true">
           <div class="affiliey-skeleton-bar short"></div>
