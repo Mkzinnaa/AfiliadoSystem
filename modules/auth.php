@@ -20,6 +20,9 @@ function start_app_session(): void
 
 function current_user(): ?array
 {
+    if (isset($GLOBALS['VERTICE_API_USER']) && is_array($GLOBALS['VERTICE_API_USER'])) {
+        return $GLOBALS['VERTICE_API_USER'];
+    }
     start_app_session();
     return $_SESSION['affiliate_user'] ?? null;
 }

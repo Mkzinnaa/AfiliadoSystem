@@ -67,7 +67,7 @@ function app_send_email(string $to, string $subject, string $html, string $text)
     $username = (string)$settings['username'];
     $password = (string)$settings['password'];
     $from = (string)$settings['from_email'];
-    $fromName = trim(str_replace(["\r", "\n"], '', (string)($settings['from_name'] ?? 'Vértice')));
+    $fromName = trim(str_replace(["\r", "\n"], '', (string)($settings['from_name'] ?? 'AFFILIEY')));
     if (filter_var($to, FILTER_VALIDATE_EMAIL) === false) throw new InvalidArgumentException('Endereço de e-mail inválido.');
     if (preg_match('/[\r\n]/', $subject)) throw new InvalidArgumentException('Assunto de e-mail inválido.');
 
@@ -120,5 +120,5 @@ function app_send_email(string $to, string $subject, string $html, string $text)
 
 function app_email_page(string $title, string $content): string
 {
-    return '<!doctype html><html lang="pt-BR"><body style="margin:0;background:#f4f7f3;font-family:Arial,sans-serif;color:#19241e"><div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e4eae6;border-radius:14px;padding:32px"><p style="font-weight:bold;color:#16845c">vértice.</p><h1 style="font-size:22px">' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1>' . $content . '<p style="margin-top:32px;color:#78867e;font-size:12px">Se você não esperava esta mensagem, pode ignorá-la.</p></div></body></html>';
+    return '<!doctype html><html lang="pt-BR"><body style="margin:0;background:#F9FAFB;font-family:Arial,sans-serif;color:#111827"><div style="max-width:560px;margin:32px auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:32px"><p style="font-weight:800;letter-spacing:1px;color:#111827">AFFILIEY</p><h1 style="font-size:22px">' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h1>' . $content . '<p style="margin-top:32px;color:#6b7280;font-size:12px">Se você não esperava esta mensagem, pode ignorá-la.</p></div></body></html>';
 }

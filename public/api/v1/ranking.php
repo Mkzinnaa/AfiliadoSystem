@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/../../../modules/ranking.php';
+api_method('GET');
+api_require_auth();
+$metric = (string)($_GET['metric'] ?? 'revenue');
+if (!in_array($metric, ['revenue','orders','new_customers','conversion','growth'], true)) api_fail('Métrica inválida.', 422, 'invalid_metric');
+$end = (string)($_GET['end'] ?? gmdate('Y-m-d'));
+$start = (string)($_GET['start'] ?? (new DateTimeImmutable('today UTC'))->modify('-29 days')->format('Y-m-d'));
+foreach ([$start,$end] as $date) if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !checkdate((int)substr($date,5,2),(int)substr($date,8,2),(int)substr($date,0,4))) api_fail('Período inválido.', 422, 'invalid_period');
+if ($start > $end || (new DateTimeImmutable($start))->diff(new DateTimeImmutable($end))->days > 366) api_fail('O período deve estar em ordem e conter no máximo 367 dias.', 422, 'invalid_period');
+$group = trim((string)($_GET['group'] ?? 'all'));
+if (strlen($group) > 100) api_fail('Grupo inválido.', 422, 'invalid_group');
+$rows = affiliate_ranking($metric, $start, $end, $group);
+$rows = array_slice($rows, 0, 100);
+$data = [];
+foreach ($rows as $index => $row) $data[] = ['position' => $index + 1, 'affiliate_id' => $row['id'], 'name' => $row['name'], 'group' => $row['group'], 'value' => (float)$row['ranking_value'], 'sales' => (float)$row['ranking_revenue'], 'orders' => (int)$row['ranking_orders'], 'new_customers' => (int)$row['ranking_new_customers'], 'conversion' => (float)$row['ranking_conversion']];
+api_ok($data, ['metric' => $metric, 'start' => $start, 'end' => $end]);

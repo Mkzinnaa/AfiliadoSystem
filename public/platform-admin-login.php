@@ -21,7 +21,7 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Entrar no painel SaaS — Vértice</title>
+  <title>Entrar no painel SaaS — AFFILIEY</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -29,11 +29,11 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
   <link rel="stylesheet" href="assets/css/login-access.css">
   <link rel="stylesheet" href="assets/css/password-toggle.css">
   <script src="assets/js/password-toggle.js" defer></script>
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#176b50"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script></head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="180x180" href="/brand/affiliey-apple-touch-icon.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script><link rel="icon" type="image/png" href="/brand/affiliey-favicon.png"><link rel="stylesheet" href="/assets/css/brand.css?v=affiliey4"><meta name="theme-color" content="#111827"><meta property="og:site_name" content="AFFILIEY"><meta name="description" content="Gestão de afiliados, vendas, metas e campanhas em uma plataforma."><meta property="og:description" content="Gestão de afiliados, vendas, metas e campanhas em uma plataforma."><meta property="og:type" content="website"><meta property="og:title" content="AFFILIEY | Plataforma de afiliados"><meta property="og:image" content="https://afiliados.horizoncafe.com.br/brand/affiliey-logo-light.png"><link rel="stylesheet" href="/assets/css/page-transitions.css?v=1"><script src="/assets/js/page-transitions.js" defer></script></head>
 <body>
   <main class="layout">
     <section class="story">
-      <div class="brand"><span class="mark">v</span> vértice<em>.</em></div>
+      <div class="brand"><picture class="brand-picture"><source media="(max-width: 640px)" srcset="/brand/affiliey-symbol.png"><img class="brand-logo" src="/brand/affiliey-logo-light.png" alt="AFFILIEY"></picture></div>
       <div class="copy">
         <div class="eyebrow">ADMINISTRAÇÃO DO SAAS</div>
         <h1>Uma visão completa<br>da plataforma.</h1>

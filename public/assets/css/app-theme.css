@@ -1,11 +1,11 @@
-/* Shared Vértice design system for producer workspace modules. */
+/* Shared AFFILIEY design system for producer workspace modules. */
 :root {
-  --ink: #172321;
+  --ink: #111827;
   --muted: #78867f;
-  --line: #e5ebe7;
-  --bg: #f5f8f6;
-  --green: #176b50;
-  --pale: #eaf5ef;
+  --line: #FFFBEB;
+  --bg: #FFFBEB;
+  --green: var(--brand-primary-dark);
+  --pale: #FFFBEB;
   --white: #fff;
   --shadow: 0 8px 26px rgb(25 55 39 / 5%);
   --radius-card: 14px;
@@ -215,10 +215,10 @@ body.app-shell button.button {
   justify-content: center;
   gap: 7px;
   padding: 0 14px;
-  border: 1px solid #dfe7e2;
+  border: 1px solid #FFFBEB;
   border-radius: 9px;
   background: #fff;
-  color: #42534a;
+  color: #111827;
   font: 700 11px 'DM Sans', sans-serif;
   line-height: 1.2;
   text-decoration: none;
@@ -227,7 +227,7 @@ body.app-shell button.button {
 }
 
 body.app-shell .button:hover,
-body.app-shell .btn:hover { background: #f8faf8; border-color: #cbd9d0; }
+body.app-shell .btn:hover { background: #FFFBEB; border-color: #FEF3C7; }
 
 body.app-shell .button.primary,
 body.app-shell .btn.primary {
@@ -237,12 +237,12 @@ body.app-shell .btn.primary {
 }
 
 body.app-shell .button.primary:hover,
-body.app-shell .btn.primary:hover { background: #11583f; border-color: #11583f; }
+body.app-shell .btn.primary:hover { background: var(--brand-primary-dark); border-color: var(--brand-primary-dark); }
 
 body.app-shell input:not([type="checkbox"]):not([type="radio"]),
 body.app-shell select,
 body.app-shell textarea {
-  border-color: #dfe7e2;
+  border-color: #FFFBEB;
   border-radius: 8px;
   color: var(--ink);
   font-family: 'DM Sans', sans-serif;
@@ -251,28 +251,28 @@ body.app-shell textarea {
 body.app-shell input:focus,
 body.app-shell select:focus,
 body.app-shell textarea:focus {
-  border-color: #72a98e;
+  border-color: var(--brand-primary-dark);
   outline: 3px solid rgb(23 107 80 / 10%);
 }
 
 body.app-shell table { border-collapse: collapse; }
 body.app-shell th {
-  background: #f8faf8;
+  background: #FFFBEB;
   color: #7c8982;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: .65px;
 }
-body.app-shell td { border-color: #edf1ee; }
+body.app-shell td { border-color: #FFFBEB; }
 
 body.app-shell .notice,
 body.app-shell .flash { border-radius: 10px; font-size: 12px; }
 
 body.app-shell .notice.success,
 body.app-shell .flash:not(.error) {
-  border: 1px solid #d0e9db;
-  background: #eff8f2;
-  color: #176b50;
+  border: 1px solid #FEF3C7;
+  background: #FFFBEB;
+  color: var(--brand-primary-dark);
 }
 
 body.app-shell .notice.error,
@@ -362,4 +362,240 @@ body.app-shell .empty-state { color: #89968f; }
   body.app-shell .panel { padding: 15px; }
   .admin-top { height: 62px; padding: 0 14px; }
   .admin-page { padding: 22px 14px 38px; }
+}
+
+/* AFFILIEY workspace refresh: premium contrast, clear hierarchy and restrained motion. */
+:root {
+  --ink: #111827;
+  --muted: #667085;
+  --line: #E7EAF0;
+  --bg: #F5F7FA;
+  --green: #F59E0B;
+  --pale: #FFF7E6;
+  --white: #FFFFFF;
+  --shadow: 0 12px 32px rgb(17 24 39 / 5%);
+  --radius-card: 18px;
+}
+
+body.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 88% 0%, rgb(245 158 11 / 5%), transparent 28rem),
+    var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body.app-shell .topbar,
+body.app-shell .top {
+  height: auto;
+  min-height: 96px;
+  padding: 12px max(24px, calc((100vw - 1340px) / 2));
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  gap: 0 26px;
+  background: #111827;
+  border: 0;
+  box-shadow: 0 8px 28px rgb(17 24 39 / 13%);
+}
+
+body.app-shell .brand { min-height: 43px; color: #fff; }
+body.app-shell .brand-logo { width: 170px; max-height: 42px; }
+body.app-shell .brand-mark { background: var(--brand-gradient); color: #111827; }
+body.app-shell .brand-dot,
+body.app-shell .brand i { color: #F59E0B; }
+
+body.app-shell .main-nav,
+body.app-shell .topnav {
+  order: 3;
+  flex: 1 0 100%;
+  width: 100%;
+  height: 39px;
+  margin-top: 7px;
+  gap: 7px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body.app-shell .main-nav::-webkit-scrollbar,
+body.app-shell .topnav::-webkit-scrollbar { display: none; }
+body.app-shell .main-nav a,
+body.app-shell .topnav a {
+  flex: 0 0 auto;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 9px;
+  color: #C5CAD4;
+  font-size: 12px;
+  font-weight: 600;
+  transition: color .18s ease, background .18s ease, transform .18s ease;
+}
+body.app-shell .main-nav a:hover,
+body.app-shell .topnav a:hover { color: #fff; background: rgb(255 255 255 / 7%); }
+body.app-shell .main-nav a.selected,
+body.app-shell .topnav a.active {
+  height: 34px;
+  background: rgb(245 158 11 / 15%);
+  color: #FBBF24;
+}
+
+body.app-shell .top-actions,
+body.app-shell .right { order: 2; color: #D1D5DB; gap: 15px; }
+body.app-shell .top-actions a,
+body.app-shell .right a { color: #FBBF24; }
+body.app-shell .top-actions span,
+body.app-shell .right span { color: #D1D5DB; }
+
+body.app-shell .page,
+body.app-shell .wrap {
+  width: min(1340px, 100%);
+  padding: 38px 34px 64px;
+}
+body.app-shell .crumb { color: #98A2B3; font-size: 12px; }
+body.app-shell .crumb a:hover,
+body.app-shell .crumb .back:hover { color: #D97706; }
+
+body.app-shell .welcome,
+body.app-shell .head,
+body.app-shell .page-intro { margin-bottom: 28px; }
+body.app-shell .eyebrow {
+  color: #B45309;
+  font-size: 10px;
+  letter-spacing: 1.45px;
+  font-weight: 800;
+}
+body.app-shell .welcome h1,
+body.app-shell .head h1,
+body.app-shell .page-intro h1 {
+  margin-top: 9px;
+  font: 750 clamp(25px, 3vw, 34px)/1.16 Manrope, 'DM Sans', sans-serif;
+  letter-spacing: -1.05px;
+}
+body.app-shell .welcome p,
+body.app-shell .head p,
+body.app-shell .page-intro p { color: #667085; font-size: 13px; }
+
+body.app-shell .panel,
+body.app-shell .table-wrap,
+body.app-shell .metric,
+body.app-shell .stat-card,
+body.app-shell .summary article,
+body.app-shell .invite-result,
+body.app-shell .roles,
+body.app-shell .campaign-card,
+body.app-shell .secret-box {
+  border: 1px solid #E7EAF0;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 26px rgb(17 24 39 / 3.5%);
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+body.app-shell .stat-card:hover,
+body.app-shell .campaign-card:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgb(17 24 39 / 7%); }
+body.app-shell .panel { padding: 22px; }
+
+body.app-shell .button,
+body.app-shell .btn,
+body.app-shell button.button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #E7EAF0;
+  border-radius: 11px;
+  background: #fff;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+body.app-shell .button:hover,
+body.app-shell .btn:hover { background: #F9FAFB; border-color: #D0D5DD; transform: translateY(-1px); }
+body.app-shell .button.primary,
+body.app-shell .btn.primary {
+  border-color: #F59E0B;
+  background: linear-gradient(135deg, #FBBF24, #F59E0B);
+  color: #111827;
+  box-shadow: 0 5px 14px rgb(217 119 6 / 18%);
+}
+body.app-shell .button.primary:hover,
+body.app-shell .btn.primary:hover { background: #D97706; border-color: #D97706; color: #fff; }
+
+body.app-shell input:not([type="checkbox"]):not([type="radio"]),
+body.app-shell select,
+body.app-shell textarea {
+  min-height: 42px;
+  border: 1px solid #D0D5DD;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #111827;
+  font-size: 13px;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+body.app-shell textarea { min-height: 100px; }
+body.app-shell input:focus,
+body.app-shell select:focus,
+body.app-shell textarea:focus {
+  border-color: #F59E0B;
+  outline: 0;
+  box-shadow: 0 0 0 4px rgb(245 158 11 / 14%);
+}
+body.app-shell table { width: 100%; border-collapse: separate; border-spacing: 0; }
+body.app-shell th {
+  padding: 13px 15px;
+  background: #F8F9FB;
+  color: #667085;
+  font-size: 10px;
+  letter-spacing: .75px;
+  text-transform: uppercase;
+}
+body.app-shell td { padding: 14px 15px; border-color: #EEF0F3; color: #344054; font-size: 12px; }
+body.app-shell tr:last-child td { border-bottom: 0; }
+body.app-shell .notice,
+body.app-shell .flash { border-radius: 12px; font-size: 12px; }
+body.app-shell .notice.success,
+body.app-shell .flash:not(.error) { border: 1px solid #FDE7B0; background: #FFFAEB; color: #92400E; }
+body.app-shell .empty,
+body.app-shell .empty-state { color: #667085; }
+
+body.app-shell .page { animation: affiliey-content-in 280ms cubic-bezier(.2,.7,.2,1) both; }
+@keyframes affiliey-content-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 900px) {
+  body.app-shell .topbar,
+  body.app-shell .top { min-height: 94px; padding: 10px 20px; }
+  body.app-shell .page,
+  body.app-shell .wrap { padding: 30px 20px 48px; }
+}
+@media (max-width: 680px) {
+  body.app-shell .topbar,
+  body.app-shell .top {
+    min-height: 94px;
+    padding: 9px 14px 7px;
+    gap: 0 10px;
+  }
+  body.app-shell .brand-logo { width: 145px; max-height: 36px; }
+  body.app-shell .main-nav,
+  body.app-shell .topnav { height: 37px; margin-top: 5px; gap: 3px; }
+  body.app-shell .main-nav a,
+  body.app-shell .topnav a { padding: 0 10px; font-size: 11px; }
+  body.app-shell .top-actions,
+  body.app-shell .right { gap: 10px; font-size: 11px; }
+  body.app-shell .top-actions span,
+  body.app-shell .right span { max-width: 116px; }
+  body.app-shell .page,
+  body.app-shell .wrap { padding: 25px 15px 40px; }
+  body.app-shell .welcome,
+  body.app-shell .head,
+  body.app-shell .page-intro { gap: 13px; }
+  body.app-shell .welcome h1,
+  body.app-shell .head h1,
+  body.app-shell .page-intro h1 { font-size: 25px; }
+  body.app-shell .panel { padding: 17px; }
+  body.app-shell .table-wrap { overflow-x: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.app-shell .page { animation: none; }
+  body.app-shell .stat-card,
+  body.app-shell .campaign-card,
+  body.app-shell .button,
+  body.app-shell .btn { transition: none; }
 }

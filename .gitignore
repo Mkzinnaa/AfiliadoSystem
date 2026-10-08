@@ -1,5 +1,6 @@
 # Runtime data, credentials and local-only PHP binary
 /.runtime/
+/.pnpm-store/
 /.env
 /.env.*
 !/.env.example

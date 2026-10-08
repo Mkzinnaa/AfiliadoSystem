@@ -6,7 +6,7 @@
   button.type = 'button';
   button.className = 'pwa-install-button';
   button.textContent = '↓ Instalar app';
-  button.setAttribute('aria-label', 'Instalar o Vértice no celular');
+  button.setAttribute('aria-label', 'Instalar o AFFILIEY no celular');
   button.hidden = true;
   document.body.append(button);
 
@@ -40,7 +40,7 @@
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch((error) => console.warn('Vértice PWA:', error));
+      navigator.serviceWorker.register('/service-worker.js', { scope: '/' }).catch((error) => console.warn('AFFILIEY PWA:', error));
     }, { once: true });
   }
 })();

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AFFILIEY</string>
+    <string name="title_activity_main">AFFILIEY</string>
+    <string name="package_name">com.horizoncafe.vertice</string>
+    <string name="custom_url_scheme">com.horizoncafe.vertice</string>
+</resources>

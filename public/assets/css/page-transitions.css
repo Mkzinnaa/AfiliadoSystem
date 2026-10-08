@@ -1,0 +1,138 @@
+:root {
+  --affiliey-transition-ms: 260ms;
+  --affiliey-skeleton-base: #E5E7EB;
+  --affiliey-skeleton-shine: #F3F4F6;
+}
+
+body.affiliey-page-enter {
+  animation: affiliey-page-enter var(--affiliey-transition-ms) cubic-bezier(.2,.7,.2,1) both;
+}
+
+body.affiliey-page-leave {
+  opacity: .22;
+  transform: translateY(-5px);
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+@keyframes affiliey-page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.affiliey-page-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+  background: rgb(255 255 255 / 94%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.affiliey-page-loader.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.affiliey-page-loader.is-hiding {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.affiliey-loader-content {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  width: min(520px, 100%);
+  margin: auto;
+}
+
+.affiliey-loader-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+}
+
+.affiliey-loader-brand img {
+  display: block;
+  width: clamp(168px, 42vw, 220px);
+  max-height: 56px;
+  object-fit: contain;
+}
+
+.affiliey-loader-label {
+  margin: -8px 0 0;
+  color: var(--brand-dark, #111827);
+  font: 600 13px/1.4 system-ui, sans-serif;
+}
+
+.affiliey-loader-progress {
+  width: min(220px, 68vw);
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #E5E7EB;
+}
+
+.affiliey-loader-progress span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-gradient, linear-gradient(135deg, #F59E0B 0%, #D97706 100%));
+  animation: affiliey-progress 1.05s ease-in-out infinite alternate;
+}
+
+@keyframes affiliey-progress {
+  from { transform: translateX(-12%); }
+  to { transform: translateX(150%); }
+}
+
+.affiliey-loader-skeleton {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-top: 7px;
+}
+
+.affiliey-skeleton-bar,
+.affiliey-skeleton-card,
+.affiliey-skeleton-dot {
+  background: linear-gradient(100deg, var(--affiliey-skeleton-base) 25%, var(--affiliey-skeleton-shine) 45%, var(--affiliey-skeleton-base) 65%);
+  background-size: 220% 100%;
+  animation: affiliey-shimmer 1.15s ease-in-out infinite;
+}
+
+.affiliey-skeleton-bar { height: 13px; border-radius: 7px; }
+.affiliey-skeleton-bar.short { width: 38%; }
+.affiliey-skeleton-bar.medium { width: 64%; }
+.affiliey-skeleton-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.affiliey-skeleton-card { min-height: 72px; border: 1px solid #E5E7EB; border-radius: 12px; }
+
+@keyframes affiliey-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (max-width: 520px) {
+  .affiliey-loader-content { gap: 17px; }
+  .affiliey-skeleton-grid { gap: 8px; }
+  .affiliey-skeleton-card { min-height: 60px; border-radius: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.affiliey-page-enter { animation: none; }
+  .affiliey-page-loader,
+  .affiliey-page-loader.is-hiding { transition-duration: 1ms; }
+  .affiliey-loader-progress span,
+  .affiliey-skeleton-bar,
+  .affiliey-skeleton-card { animation: none; }
+}

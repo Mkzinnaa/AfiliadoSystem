@@ -6,12 +6,13 @@ declare(strict_types=1);
 const DEMO_USER = [
     'name' => 'Mariana Costa',
     'email' => 'mariana@novavida.com',
-    'password' => 'Vertice2026!',
+    'login' => '123',
+    'password' => '123456789',
     'tenant_id' => 'tenant-demo',
     'role' => 'owner',
 ];
 
-const APP_NAME = 'Vértice';
+const APP_NAME = 'AFFILIEY';
 
 function demo_enabled(): bool
 {

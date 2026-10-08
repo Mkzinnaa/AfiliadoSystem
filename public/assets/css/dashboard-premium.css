@@ -1,0 +1,284 @@
+/* Dark, premium producer dashboard. Keeps all existing PHP content and actions. */
+body.dashboard-shell {
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: #F9FAFB;
+  background:
+    radial-gradient(ellipse at 87% 0%, rgb(245 158 11 / 5%), transparent 32rem),
+    #0B0D10;
+}
+
+body.dashboard-shell .topbar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+  width: 252px;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 27px 15px 19px;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: stretch;
+  gap: 0;
+  overflow-y: auto;
+  background: #111214;
+  border-right: 1px solid #24262A;
+  box-shadow: 12px 0 36px rgb(0 0 0 / 10%);
+  backdrop-filter: none;
+}
+body.dashboard-shell .brand {
+  min-height: 46px;
+  justify-content: flex-start;
+  padding: 0 5px;
+}
+body.dashboard-shell .brand-logo { width: 190px; max-height: 46px; }
+body.dashboard-shell .main-nav {
+  order: 2;
+  flex: 1 0 auto;
+  width: 100%;
+  height: auto;
+  margin: 36px 0 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  overflow: visible;
+}
+body.dashboard-shell .main-nav a {
+  width: 100%;
+  height: 44px;
+  flex: 0 0 44px;
+  padding: 0 13px;
+  border-radius: 11px;
+  color: #A6A8AD;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color .18s ease, background .18s ease, transform .18s ease;
+}
+body.dashboard-shell .main-nav a:hover {
+  color: #fff;
+  background: #202124;
+  transform: translateX(2px);
+}
+body.dashboard-shell .main-nav a.selected,
+body.dashboard-shell .main-nav a.selected:hover {
+  color: #16130B !important;
+  background: linear-gradient(110deg, #FBBF24 0%, #F59E0B 100%);
+  box-shadow: 0 7px 19px rgb(245 158 11 / 17%);
+}
+body.dashboard-shell .top-actions {
+  order: 3;
+  width: 100%;
+  margin: auto 0 0;
+  padding: 17px 8px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #292B2F;
+  color: #C6C8CD;
+  font-size: 12px;
+}
+body.dashboard-shell .top-actions .hello { color: #C6C8CD; }
+body.dashboard-shell .top-actions .logout { color: #FBBF24; }
+
+body.dashboard-shell .page {
+  width: calc(100% - 252px);
+  max-width: none;
+  margin: 0 0 0 252px;
+  padding: 32px clamp(24px, 3vw, 48px) 55px;
+  animation: affiliey-content-in 280ms cubic-bezier(.2,.7,.2,1) both;
+}
+body.dashboard-shell .welcome {
+  position: relative;
+  min-height: 150px;
+  margin: 0 0 22px;
+  padding: 27px 30px;
+  align-items: center;
+  border: 1px solid #302719;
+  border-radius: 19px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 82% 0%, rgb(245 158 11 / 14%), transparent 20rem),
+    linear-gradient(108deg, #17181B, #111214 80%);
+  box-shadow: 0 18px 38px rgb(0 0 0 / 16%);
+}
+body.dashboard-shell .welcome::after {
+  content: "";
+  position: absolute;
+  width: 230px;
+  height: 230px;
+  right: 14%;
+  top: -155px;
+  border: 1px solid rgb(245 158 11 / 17%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 22px rgb(245 158 11 / 2%), 0 0 0 48px rgb(245 158 11 / 2%);
+  pointer-events: none;
+}
+body.dashboard-shell .welcome > div,
+body.dashboard-shell .welcome > a { position: relative; z-index: 1; }
+body.dashboard-shell .welcome .eyebrow { color: #FBBF24 !important; }
+body.dashboard-shell .welcome h1 {
+  margin: 8px 0 6px;
+  color: #F9FAFB;
+  font-size: clamp(25px, 2.4vw, 32px);
+  letter-spacing: -.9px;
+}
+body.dashboard-shell .welcome p { color: #A7A9AF; font-size: 13px; }
+body.dashboard-shell .welcome .button { white-space: nowrap; }
+
+body.dashboard-shell .stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 13px;
+}
+body.dashboard-shell .stat-card,
+body.dashboard-shell .panel {
+  border: 1px solid #25272B;
+  border-radius: 17px;
+  background: linear-gradient(145deg, #17181B, #141518 80%);
+  box-shadow: 0 11px 28px rgb(0 0 0 / 13%);
+}
+body.dashboard-shell .stat-card { min-width: 0; padding: 18px; }
+body.dashboard-shell .stat-card:hover {
+  border-color: #4B3714;
+  box-shadow: 0 15px 32px rgb(0 0 0 / 19%);
+}
+body.dashboard-shell .stat-label { color: #AEB1B8; font-size: 11px; }
+body.dashboard-shell .stat-icon,
+body.dashboard-shell .quick-icon {
+  border: 1px solid rgb(245 158 11 / 14%);
+  background: rgb(245 158 11 / 9%);
+  color: #FBBF24;
+}
+body.dashboard-shell .stat-card > strong {
+  color: #F9FAFB;
+  font-size: clamp(19px, 1.65vw, 24px);
+  letter-spacing: -.55px;
+}
+body.dashboard-shell .stat-card > small { color: #858993; font-size: 10px; line-height: 1.45; }
+
+body.dashboard-shell .dashboard-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(215px, .82fr) minmax(235px, .86fr);
+  align-items: stretch;
+  gap: 15px;
+  margin-top: 15px;
+}
+body.dashboard-shell .dashboard-grid .panel { min-width: 0; padding: 21px; }
+body.dashboard-shell .chart-panel { grid-column: 1 / span 2; }
+body.dashboard-shell .goal-panel { grid-column: 3; grid-row: 1; }
+body.dashboard-shell .ranking-panel { grid-column: 1 / span 2; grid-row: 2; }
+body.dashboard-shell .quick-panel { grid-column: 3; grid-row: 2; }
+body.dashboard-shell .panel-head h2 { color: #F3F4F6; font-size: 15px; }
+body.dashboard-shell .panel-head p { color: #8D919A; font-size: 11px; }
+body.dashboard-shell .panel-head select {
+  border-color: #393B41;
+  background: #202125;
+  color: #E5E7EB;
+}
+body.dashboard-shell .chart-legend { color: #A1A4AC; }
+body.dashboard-shell .chart-legend strong,
+body.dashboard-shell .goal-value { color: #F9FAFB; }
+body.dashboard-shell .chart-legend small,
+body.dashboard-shell .chart-legend .chart-total-label { color: #858993; }
+body.dashboard-shell .legend-sales { background: #F59E0B; box-shadow: 0 0 12px rgb(245 158 11 / 38%); }
+body.dashboard-shell .y-axis,
+body.dashboard-shell .bar-item { color: #797D86; }
+body.dashboard-shell .guides i { background: #2A2C31; }
+body.dashboard-shell .bar-item i { background: linear-gradient(180deg, #FBBF24, #D97706); box-shadow: 0 0 14px rgb(245 158 11 / 10%); }
+body.dashboard-shell .bar-item:nth-child(2n) i { background: linear-gradient(180deg, #FCD34D, #F59E0B); }
+body.dashboard-shell .demo-note { border-color: #292B30; color: #858993; }
+body.dashboard-shell .goal-badge { background: rgb(245 158 11 / 10%); color: #FBBF24; }
+body.dashboard-shell .progress-track { background: #2B2D31; }
+body.dashboard-shell .progress-track i { background: linear-gradient(90deg, #FBBF24, #D97706); box-shadow: 0 0 15px rgb(245 158 11 / 25%); }
+body.dashboard-shell .goal-meta { color: #858993; }
+body.dashboard-shell .goal-meta span:first-child,
+body.dashboard-shell .text-link { color: #FBBF24; }
+body.dashboard-shell .rank-row,
+body.dashboard-shell .quick-link { border-color: #292B30; }
+body.dashboard-shell .rank-position { color: #8C9099; }
+body.dashboard-shell .rank-position.podium { color: #FBBF24; }
+body.dashboard-shell .avatar { background: #2A2419; color: #FBBF24; }
+body.dashboard-shell .rank-person b,
+body.dashboard-shell .rank-total,
+body.dashboard-shell .quick-link { color: #E5E7EB; }
+body.dashboard-shell .rank-person small,
+body.dashboard-shell .quick-link small,
+body.dashboard-shell .empty,
+body.dashboard-shell .footnote { color: #858993; }
+body.dashboard-shell .quick-link:hover { color: #fff; }
+body.dashboard-shell .quick-link .arrow { color: #A0A3AA; }
+body.dashboard-shell .quick-icon.amber { background: rgb(245 158 11 / 9%); color: #FBBF24; }
+body.dashboard-shell .quick-icon.blue { background: #1C2631; color: #8CC5F0; }
+
+@media (max-width: 1300px) {
+  body.dashboard-shell .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  body.dashboard-shell .dashboard-grid { grid-template-columns: minmax(0, 1.2fr) minmax(220px, .8fr); }
+  body.dashboard-shell .chart-panel { grid-column: 1 / span 2; }
+  body.dashboard-shell .goal-panel { grid-column: 1 / span 2; grid-row: 2; }
+  body.dashboard-shell .ranking-panel { grid-column: 1; grid-row: 3; }
+  body.dashboard-shell .quick-panel { grid-column: 2; grid-row: 3; }
+}
+@media (max-width: 900px) {
+  body.dashboard-shell .topbar {
+    width: 218px;
+    padding: 23px 12px 17px;
+  }
+  body.dashboard-shell .brand-logo { width: 175px; }
+  body.dashboard-shell .page { width: calc(100% - 218px); margin-left: 218px; padding: 27px 20px 42px; }
+  body.dashboard-shell .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.dashboard-shell .welcome { padding: 23px; }
+}
+@media (max-width: 680px) {
+  body.dashboard-shell .topbar {
+    position: sticky;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    min-height: 94px;
+    padding: 9px 14px 7px;
+    flex-flow: row wrap;
+    align-items: center;
+    gap: 0 10px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid #292B30;
+    box-shadow: 0 8px 22px rgb(0 0 0 / 16%);
+  }
+  body.dashboard-shell .brand { min-height: 38px; padding: 0; }
+  body.dashboard-shell .brand-logo { width: 42px; height: 40px; max-height: 40px; }
+  body.dashboard-shell .main-nav {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 39px;
+    margin: 5px 0 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  body.dashboard-shell .main-nav::-webkit-scrollbar { display: none; }
+  body.dashboard-shell .main-nav a { width: auto; height: 33px; min-height: 33px; flex: 0 0 auto; padding: 0 10px; font-size: 11px; }
+  body.dashboard-shell .top-actions { order: 2; width: auto; margin: 0 0 0 auto; padding: 0; border: 0; font-size: 11px; }
+  body.dashboard-shell .top-actions .hello { max-width: 104px; }
+  body.dashboard-shell .page { width: 100%; margin: 0; padding: 23px 15px 36px; }
+  body.dashboard-shell .welcome { min-height: 0; padding: 21px 19px; align-items: flex-start; flex-direction: column; gap: 15px; }
+  body.dashboard-shell .welcome h1 { font-size: 25px; }
+  body.dashboard-shell .stats { gap: 9px; }
+  body.dashboard-shell .stat-card { padding: 14px; }
+  body.dashboard-shell .stat-card > strong { font-size: 19px; }
+  body.dashboard-shell .dashboard-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  body.dashboard-shell .dashboard-grid .panel,
+  body.dashboard-shell .chart-panel,
+  body.dashboard-shell .goal-panel,
+  body.dashboard-shell .ranking-panel,
+  body.dashboard-shell .quick-panel { grid-column: 1; grid-row: auto; padding: 17px; }
+}
+@media (max-width: 420px) {
+  body.dashboard-shell .stats { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body.dashboard-shell .page { animation: none; }
+  body.dashboard-shell .main-nav a,
+  body.dashboard-shell .stat-card { transition: none; }
+}

@@ -32,7 +32,7 @@ if (!preg_match('/^[a-f0-9]{64}$/', $visitorToken)) {
 try {
     affiliate_record_click((string)$affiliate['tenant_id'], (string)$affiliate['affiliate_id'], $visitorToken);
 } catch (Throwable $exception) {
-    error_log('[Vértice] Falha ao registrar clique de afiliado: ' . $exception->getMessage());
+    error_log('[AFFILIEY] Falha ao registrar clique de afiliado: ' . $exception->getMessage());
 }
 header('Location: ' . $destination, true, 302);
 exit;

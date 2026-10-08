@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (DomainException $exception) {
             $error = $exception->getMessage();
         } catch (Throwable $exception) {
-            error_log('[Vértice] Falha ao registrar inscrição de afiliado: ' . $exception->getMessage());
+            error_log('[AFFILIEY] Falha ao registrar inscrição de afiliado: ' . $exception->getMessage());
             $error = 'Não foi possível enviar sua inscrição agora. Tente novamente mais tarde.';
         }
     }
@@ -45,15 +45,15 @@ if (!$workspace) http_response_code(404);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title>Seja afiliado<?= $workspace ? ' — ' . apply_escape($workspace['name']) : '' ?> | Vértice</title>
+    <title>Seja afiliado<?= $workspace ? ' — ' . apply_escape($workspace['name']) : '' ?> | AFFILIEY</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/affiliate-apply.css">
-<link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#176b50"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="192x192" href="/assets/icons/icon-192.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script></head>
+<link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" sizes="180x180" href="/brand/affiliey-apple-touch-icon.png"><link rel="stylesheet" href="/assets/css/pwa.css"><script src="/assets/js/pwa.js" defer></script><link rel="icon" type="image/png" href="/brand/affiliey-favicon.png"><link rel="stylesheet" href="/assets/css/brand.css?v=affiliey4"><meta name="theme-color" content="#111827"><meta property="og:site_name" content="AFFILIEY"><meta name="description" content="Gestão de afiliados, vendas, metas e campanhas em uma plataforma."><meta property="og:description" content="Gestão de afiliados, vendas, metas e campanhas em uma plataforma."><meta property="og:type" content="website"><meta property="og:title" content="AFFILIEY | Plataforma de afiliados"><meta property="og:image" content="https://afiliados.horizoncafe.com.br/brand/affiliey-logo-light.png"><link rel="stylesheet" href="/assets/css/page-transitions.css?v=1"><script src="/assets/js/page-transitions.js" defer></script></head>
 <body>
 <main class="card">
-    <a class="brand" href="login.php"><span>v</span> vértice<em>.</em></a>
+    <a class="brand" href="login.php"><picture class="brand-picture"><source media="(max-width: 640px)" srcset="/brand/affiliey-symbol.png"><img class="brand-logo" src="/brand/affiliey-logo-light.png" alt="AFFILIEY"></picture></a>
     <?php if (!$workspace): ?>
         <div class="eyebrow">LINK INDISPONÍVEL</div><h1>Não encontramos este programa</h1>
         <p class="sub">Peça ao produtor um link de inscrição atualizado.</p>

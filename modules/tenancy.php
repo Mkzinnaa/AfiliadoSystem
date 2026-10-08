@@ -3,6 +3,10 @@ declare(strict_types=1);
 
 function tenant_id(): string
 {
+    if (isset($GLOBALS['VERTICE_API_USER']['tenant_id'])) {
+        $apiTenant = (string)$GLOBALS['VERTICE_API_USER']['tenant_id'];
+        if (preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $apiTenant)) return $apiTenant;
+    }
     if (session_status() !== PHP_SESSION_ACTIVE) session_start();
     $id = (string)($_SESSION['affiliate_user']['tenant_id'] ?? 'tenant-demo');
     return preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $id) ? $id : 'tenant-demo';
