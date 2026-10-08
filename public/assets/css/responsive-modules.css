@@ -1,0 +1,96 @@
+/* Responsive layouts for ranking, rewards, announcements and team. */
+body.app-shell .table-scroll,
+body.app-shell .table-wrap { max-width: 100%; overscroll-behavior-x: contain; }
+body.app-shell .ranking-filters { min-width: 0; }
+body.app-shell .ranking-filters label,
+body.app-shell .reward-fields label,
+body.app-shell .compose label { min-width: 0; }
+body.app-shell .ranking-filters input,
+body.app-shell .ranking-filters select,
+body.app-shell .reward-create input,
+body.app-shell .reward-create select,
+body.app-shell .compose input,
+body.app-shell .compose select,
+body.app-shell .compose textarea,
+body.app-shell .side input,
+body.app-shell .side select { max-width: 100%; }
+
+@media (max-width: 900px) {
+  body.app-shell .ranking-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.app-shell .ranking-filters button { width: 100%; }
+  body.app-shell .reward-layout,
+  body.app-shell .announce-layout,
+  body.app-shell .team-layout { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .rule-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.app-shell .roles > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  body.app-shell .ranking-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  body.app-shell .ranking-summary article:last-child { grid-column: 1 / -1; }
+  body.app-shell .ranking-row {
+    grid-template-columns: 24px 32px minmax(0, 1fr) auto;
+    grid-template-rows: auto auto; gap: 5px 8px; min-height: 68px; padding: 11px 10px;
+  }
+  body.app-shell .ranking-row .place { grid-column: 1; grid-row: 1 / 3; }
+  body.app-shell .ranking-row .avatar { grid-column: 2; grid-row: 1 / 3; }
+  body.app-shell .ranking-row .affiliate-name { grid-column: 3; grid-row: 1; }
+  body.app-shell .ranking-row .secondary-metrics {
+    grid-column: 3; grid-row: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 9px;
+  }
+  body.app-shell .ranking-row .secondary-metrics span,
+  body.app-shell .ranking-row .secondary-metrics small { font-size: 9px; }
+  body.app-shell .ranking-row .ranking-score { grid-column: 4; grid-row: 1 / 3; max-width: 86px; font-size: 10px; overflow-wrap: anywhere; }
+  body.app-shell .reward-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.app-shell .reward-fields-bottom { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .award-row {
+    grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-rows: auto auto auto;
+    align-items: start; gap: 7px 9px; min-height: 0; margin: 0 -4px; padding: 13px 4px;
+  }
+  body.app-shell .award-icon { grid-column: 1; grid-row: 1 / 4; }
+  body.app-shell .award-person { grid-column: 2; grid-row: 1; }
+  body.app-shell .award-state { grid-column: 3; grid-row: 1; align-self: start; }
+  body.app-shell .award-target { grid-column: 2; grid-row: 2; display: grid; }
+  body.app-shell .award-benefit { grid-column: 2; grid-row: 3; display: grid; gap: 3px; }
+  body.app-shell .award-row form { grid-column: 3; grid-row: 2 / 4; align-self: center; }
+  body.app-shell .award-row form .button { min-height: 38px; padding: 0 10px; font-size: 10px; }
+  body.app-shell .announce-page { width: 100%; min-width: 0; padding: 23px 15px 38px; }
+  body.app-shell .announce-page .intro { align-items: flex-start; flex-direction: column; gap: 12px; }
+  body.app-shell .announce-page .smtp-state { white-space: normal; }
+  body.app-shell .announce-page .history-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+  body.app-shell .announce-page .history-main { grid-column: 1; grid-row: 1; overflow-wrap: anywhere; }
+  body.app-shell .announce-page .history-row .delivery { grid-column: 2; grid-row: 1; }
+  body.app-shell .announce-page .history-main small { line-height: 1.5; }
+  body.app-shell .table-scroll table { min-width: 560px; }
+}
+
+@media (max-width: 520px) {
+  body.app-shell .ranking-filters { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .ranking-filters input,
+  body.app-shell .ranking-filters select,
+  body.app-shell .reward-create input,
+  body.app-shell .reward-create select,
+  body.app-shell .compose input,
+  body.app-shell .compose select,
+  body.app-shell .compose textarea,
+  body.app-shell .side input,
+  body.app-shell .side select { font-size: 16px; }
+  body.app-shell .ranking-summary article { grid-template-columns: minmax(0, 1fr) auto; }
+  body.app-shell .ranking-summary strong { font-size: 17px; }
+  body.app-shell .ranking-heading { align-items: flex-start; flex-direction: column; gap: 10px; padding: 15px; }
+  body.app-shell .ranking-note { overflow-wrap: anywhere; }
+  body.app-shell .reward-fields { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .rule-grid,
+  body.app-shell .roles > div { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .roles article { min-width: 0; }
+  body.app-shell .announce-page .panel { padding: 15px; }
+  body.app-shell .announce-page .history-row { grid-template-columns: minmax(0, 1fr); }
+  body.app-shell .announce-page .history-row .delivery { grid-column: 1; grid-row: 2; justify-self: start; }
+  body.app-shell .award-row { grid-template-columns: 24px minmax(0, 1fr); }
+  body.app-shell .award-state { grid-column: 2; grid-row: 2; justify-self: start; }
+  body.app-shell .award-target { grid-column: 2; grid-row: 3; }
+  body.app-shell .award-benefit { grid-column: 2; grid-row: 4; }
+  body.app-shell .award-icon { grid-row: 1 / 5; }
+  body.app-shell .award-row form { grid-column: 2; grid-row: 5; justify-self: start; }
+  body.app-shell .table-scroll table { min-width: 520px; }
+}

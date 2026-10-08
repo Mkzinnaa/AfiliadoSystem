@@ -9,7 +9,10 @@
     "add:ios": "cap add ios",
     "sync": "cap sync",
     "android": "cap open android",
-    "ios": "cap open ios"
+    "ios": "cap open ios",
+    "apk:debug": "cap sync android && cd android && gradlew.bat assembleDebug",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

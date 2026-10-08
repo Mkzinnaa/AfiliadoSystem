@@ -2,7 +2,7 @@
 
 Aplicação PHP para gestão de espaços de produtores, afiliados, vendas, campanhas, equipe e integração de pedidos via webhooks da Kiwify, Hotmart e Eduzz. **MySQL é o único banco suportado.**
 
-O painel também pode ser instalado no celular como PWA. No Android, use **Instalar app** ou **Adicionar à tela inicial** no navegador. No iPhone/iPad, abra em Safari, toque em **Compartilhar** e escolha **Adicionar à Tela de Início**. A instalação exige HTTPS (ou localhost no desenvolvimento). Telas autenticadas e dados do produtor continuam sendo carregados do servidor; offline, o app mostra apenas uma página informativa e não guarda vendas ou dados pessoais no cache. A publicação na Google Play ou App Store ainda exige uma etapa futura de empacotamento nativo e análise das lojas.
+O painel também pode ser instalado no celular como PWA. No Android, use **Instalar app** ou **Adicionar à tela inicial** no navegador. No iPhone/iPad, abra em Safari, toque em **Compartilhar** e escolha **Adicionar à Tela de Início**. A instalação exige HTTPS (ou localhost no desenvolvimento). Telas autenticadas e dados do produtor continuam sendo carregados do servidor; offline, o app mostra apenas uma página informativa e não guarda vendas ou dados pessoais no cache. Os projetos nativos Android e iOS iniciados com Capacitor ficam em `mobile/`; gerar um APK exige Android Studio/SDK e JDK 21, e compilar/assinar o iOS exige macOS com Xcode. Antes da App Store, o app também precisa oferecer utilidade integrada além de somente abrir o painel web, conforme a diretriz de funcionalidade mínima da Apple ([App Review Guidelines 4.2](https://developer.apple.com/app-store/review/guidelines/)).
 
 ## Requisitos
 

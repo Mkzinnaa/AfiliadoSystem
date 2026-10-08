@@ -7,7 +7,7 @@ A API móvel fica em `https://afiliados.horizoncafe.com.br/api/v1/`. Para telas 
 ## Requisitos
 
 - Node.js 22 ou superior e pnpm;
-- Android: Android Studio, Android SDK e JDK compatível com a versão do Gradle gerada;
+- Android: Android Studio/Android SDK e JDK 21 (o projeto usa Java 21 para compilar);
 - iOS: macOS com Xcode. O projeto iOS pode ser gerado no Windows, mas compilação, assinatura e publicação exigem macOS/Xcode.
 
 ## Instalar dependências e sincronizar
@@ -24,6 +24,22 @@ Para abrir no Android Studio ou Xcode:
 pnpm android
 pnpm ios
 ```
+
+### Gerar APK de depuração no Windows
+
+Com o Android Studio e o SDK instalados, abra o terminal nesta pasta (`mobile/`) e execute:
+
+```powershell
+pnpm apk:debug
+```
+
+O APK de depuração será criado em `android/app/build/outputs/apk/debug/app-debug.apk`. Para instalar no celular, habilite a instalação de aplicativos de origem desconhecida e transfira esse arquivo. Ele é para testes; uma versão de loja precisa de uma chave de assinatura protegida e configuração de release.
+
+O build depende de Android SDK configurado no Android Studio (`ANDROID_HOME` ou `ANDROID_SDK_ROOT`) e de um JDK 21 selecionado para o Gradle. Não coloque a chave de assinatura no Git.
+
+### Preparar o projeto iOS
+
+O projeto iOS já está criado. Sincronize os assets/plugins com `pnpm ios:sync` e abra com `pnpm ios:open`. A compilação e assinatura do app iOS exigem macOS com Xcode; no Windows, é possível manter o projeto preparado, mas não gerar o `.ipa` final.
 
 O Android Studio pode gerar APK de depuração para instalação local e AAB assinado para a Google Play. No Xcode, configure a equipe de assinatura e o identificador antes de arquivar para a App Store.
 
