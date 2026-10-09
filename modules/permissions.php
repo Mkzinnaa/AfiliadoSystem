@@ -157,40 +157,104 @@ function app_member_permissions(string $tenantId, array $member): array
 
 function app_workspace_navigation(): string
 {
-    if ((current_user()['active_profile'] ?? 'producer') === 'affiliate') {
-        $views = ['dashboard'=>'Visão geral','groups'=>'Meus grupos','products'=>'Meus produtos','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
-        $currentView = (string)($_GET['view'] ?? 'dashboard'); $links='';
-        foreach($views as $view=>$label) {
-            $class=$currentView===$view?' class="active"':'';
-            $links.='<a'.$class.' href="student-dashboard.php?view='.$view.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</a>';
-        }
-        $links.='<a href="student-content.php">Conteúdos dos grupos</a>';
-        return $links;
-    }
-    $items = [
-        'dashboard' => ['dashboard.php', 'Visão geral'],
-        'affiliates' => ['affiliates.php', 'Afiliados'],
-        'communities' => ['communities.php', 'Meus grupos'],
-        'sales' => ['sales.php', 'Vendas'],
-        'campaigns' => ['campaigns.php', 'Metas'],
-        'ranking' => ['ranking.php', 'Ranking'],
-        'rewards' => ['rewards.php', 'Recompensas'],
-        'announcements' => ['announcements.php', 'Comunicados'],
-        'team' => ['team.php', 'Equipe'],
-        'integrations' => ['integrations.php', 'Integrações'],
-        'materials' => ['materials.php', 'Materiais'],
-        'events' => ['events.php', 'Reuniões'],
-        'support' => ['support.php', 'Suporte'],
-    ];
-    $current = app_permission_module_for_request();
-    if ($current === 'affiliate_groups') $current = 'affiliates';
-    $activeClass = basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'affiliates.php' ? 'active' : 'selected';
+    $profile = (string)(current_user()['active_profile'] ?? 'producer');
+    $currentSection = app_workspace_section_for_request($profile);
     $links = '';
-    foreach ($items as $module => [$href, $label]) {
-        if (!app_user_can($module, 'view')) continue;
-        $class = $current === $module ? ' class="' . $activeClass . '"' : '';
-        $links .= '<a' . $class . ' href="' . $href . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
+    foreach (app_workspace_sections($profile) as $section) {
+        if ($profile !== 'affiliate') {
+            $section['items'] = array_values(array_filter($section['items'], static fn(array $item): bool => empty($item['module']) || app_user_can((string)$item['module'], 'view')));
+            if (!$section['items']) continue;
+        }
+        $active = $currentSection === $section['id'];
+        $links .= '<a class="workspace-nav-link' . ($active ? ' selected active' : '') . '" href="section.php?section=' . rawurlencode($section['id']) . '"' . ($active ? ' aria-current="page"' : '') . '><span aria-hidden="true">' . htmlspecialchars($section['icon'], ENT_QUOTES, 'UTF-8') . '</span><b>' . htmlspecialchars($section['label'], ENT_QUOTES, 'UTF-8') . '</b></a>';
     }
-    if(app_user_can('communities','view'))$links.='<a href="community-content.php">Conteúdos dos grupos</a><a href="community-settings.php">Configurar grupos</a>';
     return $links;
+}
+
+/** Navigation hubs and real destinations available in each workspace. */
+function app_workspace_sections(string $profile): array
+{
+    $student = [
+        ['id'=>'overview','label'=>'Início','icon'=>'⌂','description'=>'Seu resumo e atividade recente.','items'=>[
+            ['title'=>'Visão geral','description'=>'Acompanhe vendas, comissões e novidades da sua conta.','href'=>'student-dashboard.php?view=dashboard'],
+        ]],
+        ['id'=>'business','label'=>'Meu Negócio','icon'=>'↗','description'=>'Produtos e resultados comerciais vinculados à sua conta.','items'=>[
+            ['title'=>'Meus produtos','description'=>'Veja produtos com vendas identificadas e links autorizados.','href'=>'student-dashboard.php?view=products'],
+            ['title'=>'Minhas vendas','description'=>'Consulte transações atribuídas aos seus vínculos ativos.','href'=>'student-dashboard.php?view=sales'],
+            ['title'=>'Minhas comissões','description'=>'Acompanhe comissões informadas pelas integrações.','href'=>'student-dashboard.php?view=commissions'],
+        ]],
+        ['id'=>'performance','label'=>'Meu Desempenho','icon'=>'⌁','description'=>'Metas, posição e conquistas da sua jornada.','items'=>[
+            ['title'=>'Minhas metas','description'=>'Crie objetivos pessoais e acompanhe seu progresso.','href'=>'student-dashboard.php?view=goals'],
+            ['title'=>'Ranking','description'=>'Consulte os rankings que os produtores compartilharam.','href'=>'student-dashboard.php?view=ranking'],
+            ['title'=>'Conquistas','description'=>'Veja as metas alcançadas e os reconhecimentos recebidos.','href'=>'student-dashboard.php?view=achievements'],
+        ]],
+        ['id'=>'community','label'=>'Comunidade e Aprendizado','icon'=>'◇','description'=>'Grupos, conteúdos, materiais e encontros.','items'=>[
+            ['title'=>'Meus grupos','description'=>'Acesse os grupos em que sua participação está ativa.','href'=>'student-dashboard.php?view=groups'],
+            ['title'=>'Conteúdos dos grupos','description'=>'Leia publicações e orientações dos produtores.','href'=>'student-content.php'],
+            ['title'=>'Materiais','description'=>'Acesse materiais de divulgação disponibilizados para você.','href'=>'student-dashboard.php?view=materials'],
+            ['title'=>'Reuniões','description'=>'Confira treinamentos e eventos dos seus grupos.','href'=>'student-dashboard.php?view=events'],
+        ]],
+        ['id'=>'communication','label'=>'Central de Comunicação','icon'=>'◎','description'=>'Avisos importantes e atendimento aos produtores.','items'=>[
+            ['title'=>'Comunicados','description'=>'Leia mensagens e atualizações dos seus produtores.','href'=>'student-dashboard.php?view=announcements'],
+            ['title'=>'Suporte','description'=>'Abra ou acompanhe conversas de atendimento.','href'=>'student-dashboard.php?view=messages'],
+        ]],
+    ];
+    if ($profile === 'affiliate') return $student;
+
+    return [
+        ['id'=>'overview','label'=>'Visão Geral','icon'=>'⌂','description'=>'Resumo da operação e indicadores principais.','items'=>[
+            ['title'=>'Dashboard','description'=>'Acompanhe vendas atribuídas, comissões e atividade da equipe.','href'=>'dashboard.php','module'=>'dashboard'],
+        ]],
+        ['id'=>'products-sales','label'=>'Produtos e Vendas','icon'=>'↗','description'=>'Vendas integradas e conexões com plataformas externas.','items'=>[
+            ['title'=>'Vendas','description'=>'Consulte transações recebidas e seus respectivos status.','href'=>'sales.php','module'=>'sales'],
+            ['title'=>'Integrações','description'=>'Conecte e gerencie suas plataformas de vendas.','href'=>'integrations.php','module'=>'integrations'],
+        ]],
+        ['id'=>'affiliate-management','label'=>'Gestão de Afiliados','icon'=>'♙','description'=>'Relacionamentos, grupos de afiliados e acessos da equipe.','items'=>[
+            ['title'=>'Afiliados','description'=>'Cadastre, aprove e acompanhe seus afiliados.','href'=>'affiliates.php','module'=>'affiliates'],
+            ['title'=>'Grupos de afiliados','description'=>'Organize sua rede em grupos e categorias.','href'=>'affiliate-groups.php','module'=>'affiliate_groups'],
+            ['title'=>'Equipe e permissões','description'=>'Convide colaboradores e configure os acessos do espaço.','href'=>'team.php','module'=>'team'],
+        ]],
+        ['id'=>'communities','label'=>'Comunidades e Grupos','icon'=>'◇','description'=>'Grupos, conteúdos e configurações de participação.','items'=>[
+            ['title'=>'Meus grupos','description'=>'Crie comunidades e gerencie seus participantes.','href'=>'communities.php','module'=>'communities'],
+            ['title'=>'Conteúdos e comunicados','description'=>'Publique conteúdos para participantes dos seus grupos.','href'=>'community-content.php','module'=>'communities'],
+            ['title'=>'Configurar grupos','description'=>'Defina regras de acesso e preferências das comunidades.','href'=>'community-settings.php','module'=>'communities'],
+        ]],
+        ['id'=>'communication-events','label'=>'Comunicação e Eventos','icon'=>'◎','description'=>'Comunicados, treinamentos, materiais e suporte.','items'=>[
+            ['title'=>'Comunicados','description'=>'Prepare e envie mensagens para afiliados e grupos.','href'=>'announcements.php','module'=>'announcements'],
+            ['title'=>'Reuniões e eventos','description'=>'Agende encontros e acompanhe confirmações.','href'=>'events.php','module'=>'events'],
+            ['title'=>'Materiais','description'=>'Organize recursos e materiais de divulgação.','href'=>'materials.php','module'=>'materials'],
+            ['title'=>'Suporte','description'=>'Acompanhe solicitações enviadas pelos afiliados.','href'=>'support.php','module'=>'support'],
+        ]],
+        ['id'=>'reports-management','label'=>'Relatórios e Gestão','icon'=>'▤','description'=>'Metas, desempenho, recompensas e operação da equipe.','items'=>[
+            ['title'=>'Metas e campanhas','description'=>'Crie campanhas e acompanhe os objetivos da equipe.','href'=>'campaigns.php','module'=>'campaigns'],
+            ['title'=>'Ranking','description'=>'Configure e acompanhe o desempenho compartilhado.','href'=>'ranking.php','module'=>'ranking'],
+            ['title'=>'Recompensas','description'=>'Defina incentivos e gerencie entregas.','href'=>'rewards.php','module'=>'rewards'],
+        ]],
+    ];
+}
+
+function app_workspace_section_for_request(string $profile): string
+{
+    $script = strtolower(basename((string)($_SERVER['SCRIPT_NAME'] ?? '')));
+    if ($script === 'section.php') return (string)($_GET['section'] ?? 'overview');
+    if ($profile === 'affiliate') {
+        if ($script === 'student-content.php') return 'community';
+        $view = (string)($_GET['view'] ?? 'dashboard');
+        return match ($view) {
+            'products','sales','commissions' => 'business',
+            'goals','ranking','achievements' => 'performance',
+            'groups','materials','events' => 'community',
+            'announcements','messages' => 'communication',
+            default => 'overview',
+        };
+    }
+    return match ($script) {
+        'dashboard.php' => 'overview',
+        'sales.php','integrations.php' => 'products-sales',
+        'affiliates.php','affiliate-groups.php','team.php' => 'affiliate-management',
+        'communities.php','community-content.php','community-settings.php' => 'communities',
+        'announcements.php','events.php','materials.php','support.php' => 'communication-events',
+        'campaigns.php','ranking.php','rewards.php' => 'reports-management',
+        default => 'overview',
+    };
 }
