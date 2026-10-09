@@ -45,6 +45,12 @@ body.app-shell .topnav > a[aria-current="page"] {
   color: #FBBF24 !important;
 }
 
+/* The dashboard's legacy selected-link rule sets dark text on its gold block. */
+body.app-shell.dashboard-shell .main-nav > a.selected[aria-current="page"],
+body.app-shell.dashboard-shell .main-nav > a[aria-current="page"] {
+  color: #FBBF24 !important;
+}
+
 body.app-shell .nav-pill-indicator.is-visible { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
