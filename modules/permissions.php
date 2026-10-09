@@ -157,7 +157,6 @@ function app_member_permissions(string $tenantId, array $member): array
 
 function app_workspace_navigation(): string
 {
-    $profileSwitch = function_exists('app_profile_switcher') ? app_profile_switcher() : '';
     if ((current_user()['active_profile'] ?? 'producer') === 'affiliate') {
         $views = ['dashboard'=>'Visão geral','groups'=>'Meus grupos','products'=>'Meus produtos','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
         $currentView = (string)($_GET['view'] ?? 'dashboard'); $links='';
@@ -166,7 +165,7 @@ function app_workspace_navigation(): string
             $links.='<a'.$class.' href="student-dashboard.php?view='.$view.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</a>';
         }
         $links.='<a href="student-content.php">Conteúdos dos grupos</a>';
-        return $profileSwitch.$links;
+        return $links;
     }
     $items = [
         'dashboard' => ['dashboard.php', 'Visão geral'],
@@ -193,5 +192,5 @@ function app_workspace_navigation(): string
         $links .= '<a' . $class . ' href="' . $href . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
     }
     if(app_user_can('communities','view'))$links.='<a href="community-content.php">Conteúdos dos grupos</a><a href="community-settings.php">Configurar grupos</a>';
-    return $profileSwitch . $links;
+    return $links;
 }
