@@ -159,6 +159,9 @@ function app_workspace_navigation(): string
 {
     $profile = (string)(current_user()['active_profile'] ?? 'producer');
     $currentSection = app_workspace_section_for_request($profile);
+    $iconAssets = $profile === 'affiliate'
+        ? ['overview'=>'nav-home.png','business'=>'nav-business.png','performance'=>'nav-performance.png','community'=>'nav-community.png','communication'=>'nav-communication.png']
+        : ['overview'=>'nav-home.png','products-sales'=>'nav-business.png','communities'=>'nav-community.png','communication-events'=>'nav-communication.png','reports-management'=>'nav-performance.png'];
     $links = '';
     foreach (app_workspace_sections($profile) as $section) {
         if ($profile !== 'affiliate') {
@@ -166,7 +169,10 @@ function app_workspace_navigation(): string
             if (!$section['items']) continue;
         }
         $active = $currentSection === $section['id'];
-        $links .= '<a class="workspace-nav-link' . ($active ? ' selected active' : '') . '" href="section.php?section=' . rawurlencode($section['id']) . '"' . ($active ? ' aria-current="page"' : '') . '><span aria-hidden="true">' . htmlspecialchars($section['icon'], ENT_QUOTES, 'UTF-8') . '</span><b>' . htmlspecialchars($section['label'], ENT_QUOTES, 'UTF-8') . '</b></a>';
+        $icon = isset($iconAssets[$section['id']])
+            ? '<img src="/assets/icons/' . $iconAssets[$section['id']] . '" width="22" height="22" alt="" aria-hidden="true" decoding="async" style="display:block;width:22px;height:22px;object-fit:contain">'
+            : htmlspecialchars($section['icon'], ENT_QUOTES, 'UTF-8');
+        $links .= '<a class="workspace-nav-link' . ($active ? ' selected active' : '') . '" href="section.php?section=' . rawurlencode($section['id']) . '"' . ($active ? ' aria-current="page"' : '') . '><span class="workspace-nav-icon" aria-hidden="true" style="width:22px;height:22px;flex:0 0 22px;display:inline-grid;place-items:center;margin-right:8px">' . $icon . '</span><b>' . htmlspecialchars($section['label'], ENT_QUOTES, 'UTF-8') . '</b></a>';
     }
     return $links;
 }
