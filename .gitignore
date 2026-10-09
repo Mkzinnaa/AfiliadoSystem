@@ -18,6 +18,9 @@
 *.bak
 *.backup
 
+# PHP runtime error logs can be generated inside cPanel's checkout
+error_log
+
 # Editor and OS files
 .DS_Store
 Thumbs.db
