@@ -1,6 +1,24 @@
 Options -Indexes
+Options -MultiViews
 AddType application/manifest+json .webmanifest
 DirectoryIndex index.php
+
+RewriteEngine On
+
+# Keep API and webhook URLs stable for mobile clients and external platforms.
+RewriteRule ^api(?:/|$) - [L]
+RewriteRule ^webhook\.php$ - [L]
+
+# Canonicalize normal page requests to extensionless URLs. Query strings are preserved.
+RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$
+RewriteCond %{THE_REQUEST} \s/+(.+?)\.php(?:[?\s]) [NC]
+RewriteRule ^(.+)\.php$ /$1 [R=301,L,NE]
+
+# Resolve extensionless page URLs to their PHP implementation.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L]
 
 # Block dotfiles and accidental backups/config/database artifacts.
 <FilesMatch "(^\.|^error_log$|\.(ini|log|sqlite|sqlite3|db|bak|backup|sql)$)">
