@@ -1,0 +1,54 @@
+/* One shared, measured pill per navigation container. */
+body.app-shell .main-nav,
+body.app-shell .topnav {
+  position: relative;
+  isolation: isolate;
+}
+
+body.app-shell .nav-pill-indicator {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 0;
+  height: 0;
+  border-radius: 999px;
+  background: rgb(245 158 11 / 14%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 300ms cubic-bezier(.22, 1, .36, 1),
+    width 300ms cubic-bezier(.22, 1, .36, 1),
+    height 300ms cubic-bezier(.22, 1, .36, 1),
+    opacity 150ms ease;
+  will-change: transform, width, height;
+}
+
+body.app-shell .main-nav > a,
+body.app-shell .topnav > a {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: color 180ms ease;
+}
+
+body.app-shell .main-nav > a:hover,
+body.app-shell .topnav > a:hover { transform: none !important; }
+
+body.app-shell .main-nav > a.selected,
+body.app-shell .topnav > a.active,
+body.app-shell .main-nav > a[aria-current="page"],
+body.app-shell .topnav > a[aria-current="page"] {
+  color: #FBBF24 !important;
+}
+
+body.app-shell .nav-pill-indicator.is-visible { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.app-shell .nav-pill-indicator,
+  body.app-shell .main-nav > a,
+  body.app-shell .topnav > a { transition: none !important; }
+}
