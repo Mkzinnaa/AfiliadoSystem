@@ -7,11 +7,11 @@ if(!empty($_SESSION['platform_admin_id'])){header('Location: platform-admin.php'
 if(empty($_SESSION['platform_login_csrf']))$_SESSION['platform_login_csrf']=bin2hex(random_bytes(32));$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!hash_equals((string)$_SESSION['platform_login_csrf'],(string)($_POST['csrf']??''))){http_response_code(403);exit('Sessão expirada. Atualize a página.');}
-    $now=time();$attempts=$_SESSION['platform_login_attempts']??['count'=>0,'until'=>0];
-    if(($attempts['until']??0)>$now)$error='Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-    else{$email=trim((string)($_POST['email']??''));$password=(string)($_POST['password']??'');$stmt=$pdo->prepare('SELECT id,name,email,password_hash FROM platform_admins WHERE email=?');$stmt->execute([$email]);$admin=$stmt->fetch();
-        if($admin&&password_verify($password,$admin['password_hash'])){session_regenerate_id(true);$_SESSION['platform_admin_id']=$admin['id'];$_SESSION['platform_login_attempts']=['count'=>0,'until'=>0];$pdo->prepare('UPDATE platform_admins SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$admin['id']]);header('Location: platform-admin.php');exit;}
-        $attempts['count']=(int)($attempts['count']??0)+1;if($attempts['count']>=5){$attempts=['count'=>0,'until'=>$now+300];$error='Muitas tentativas. Aguarde cinco minutos e tente novamente.';}else $error='E-mail ou senha incorretos.';$_SESSION['platform_login_attempts']=$attempts;
+    $email=trim((string)($_POST['email']??''));$attemptKey=app_login_attempt_key('platform-admin',$email);
+    if(app_login_is_locked($attemptKey)){header('Retry-After: 900');$error='Muitas tentativas. Aguarde 15 minutos e tente novamente.';}
+    else{$password=(string)($_POST['password']??'');$stmt=$pdo->prepare('SELECT id,name,email,password_hash FROM platform_admins WHERE email=?');$stmt->execute([$email]);$admin=$stmt->fetch();
+        if($admin&&password_verify($password,$admin['password_hash'])){session_regenerate_id(true);$_SESSION['platform_admin_id']=$admin['id'];app_login_clear_failures($attemptKey);$pdo->prepare('UPDATE platform_admins SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$admin['id']]);header('Location: platform-admin.php');exit;}
+        app_login_record_failure($attemptKey);$error='E-mail ou senha incorretos.';
     }
 }
 function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}

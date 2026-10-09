@@ -4,7 +4,7 @@ declare(strict_types=1);
 function kiwify_handle_webhook(string $connectionId,string $signature,string $rawBody): array
 {
     $pdo=app_db();$stmt=$pdo->prepare("SELECT id,tenant_id,token_hash,secret_ciphertext,status FROM integration_connections WHERE id=? AND platform='kiwify'");$stmt->execute([$connectionId]);$conn=$stmt->fetch();if(!$conn||$conn['status']!=='active')throw new DomainException('Conexão Kiwify não encontrada ou pausada.');
-    $signature=trim($signature);if(str_starts_with(strtolower($signature),'sha1='))$signature=substr($signature,5);$secret=integration_decrypt_secret((string)$conn['secret_ciphertext']);
+    $signature=trim($signature);if(str_starts_with(strtolower($signature),'sha1='))$signature=substr($signature,5);$secret=integration_decrypt_secret((string)$conn['secret_ciphertext'],(string)$conn['tenant_id'].':'.$conn['id']);
     $valid=hash_equals(hash_hmac('sha1',$rawBody,$secret),strtolower($signature));
     $payload=json_decode($rawBody,true);
     if(!$valid&&is_array($payload)){$canonical=json_encode($payload,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);if(is_string($canonical)){$hex=hash_hmac('sha1',$canonical,$secret);$valid=hash_equals($hex,$signature)||hash_equals(base64_encode(hex2bin($hex)),$signature);}}

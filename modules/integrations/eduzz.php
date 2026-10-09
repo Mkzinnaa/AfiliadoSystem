@@ -5,7 +5,7 @@ function eduzz_handle_webhook(string $connectionId,string $rawBody): array
 {
     $stmt=app_db()->prepare("SELECT id,tenant_id,token_hash,secret_ciphertext,status FROM integration_connections WHERE id=? AND platform='eduzz'");$stmt->execute([$connectionId]);$connection=$stmt->fetch();
     if(!$connection||$connection['status']!=='active')throw new DomainException('Conexão Eduzz não encontrada ou pausada.');
-    $secret=integration_decrypt_secret((string)$connection['secret_ciphertext']);
+    $secret=integration_decrypt_secret((string)$connection['secret_ciphertext'],(string)$connection['tenant_id'].':'.$connection['id']);
     $payload=json_decode($rawBody,true);if(!is_array($payload))throw new DomainException('O corpo da requisição não contém JSON válido.');
     $data=is_array($payload['data']??null)?$payload['data']:[];$producer=is_array($data['producer']??null)?$data['producer']:[];
     $originSecret=(string)($producer['originSecret']??'');

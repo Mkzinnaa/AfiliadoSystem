@@ -6,17 +6,57 @@ require_once __DIR__ . '/rewards.php';
 
 function integration_encryption_key(): string
 {
-    $dir=__DIR__.'/../.runtime/app-data';if(!is_dir($dir))mkdir($dir,0775,true);$path=$dir.'/webhook.key';
-    if(is_file($path)){$key=file_get_contents($path);if(is_string($key)&&strlen($key)===32)return $key;throw new RuntimeException('A chave de criptografia de integrações está inválida.');}
-    $key=random_bytes(32);$handle=@fopen($path,'x');if($handle===false){if(is_file($path))return integration_encryption_key();throw new RuntimeException('Não foi possível criar a chave de integrações.');}fwrite($handle,$key);fclose($handle);@chmod($path,0600);return $key;
+    $dir = __DIR__ . '/../.runtime/app-data';
+    if (!is_dir($dir) && !mkdir($dir, 0700, true) && !is_dir($dir)) {
+        throw new RuntimeException('Não foi possível criar o armazenamento privado de integrações.');
+    }
+    $path = $dir . '/webhook.key';
+    if (is_file($path)) {
+        $key = file_get_contents($path);
+        if (!is_string($key) || strlen($key) !== 32) throw new RuntimeException('A chave de criptografia de integrações está inválida.');
+        if (PHP_OS_FAMILY !== 'Windows') {
+            @chmod($dir, 0700);
+            @chmod($path, 0600);
+        }
+        return $key;
+    }
+
+    $key = random_bytes(32);
+    $handle = @fopen($path, 'x+b');
+    if ($handle === false) {
+        if (is_file($path)) return integration_encryption_key();
+        throw new RuntimeException('Não foi possível criar a chave de integrações.');
+    }
+    if (PHP_OS_FAMILY !== 'Windows') @chmod($path, 0600);
+    $written = fwrite($handle, $key);
+    fflush($handle);
+    fclose($handle);
+    if ($written !== 32) {
+        @unlink($path);
+        throw new RuntimeException('Não foi possível salvar a chave de integrações.');
+    }
+    if (PHP_OS_FAMILY !== 'Windows') @chmod($dir, 0700);
+    return $key;
 }
-function integration_encrypt_secret(string $secret): string
+function integration_encrypt_secret(string $secret, string $context = ''): string
 {
-    $nonce=random_bytes(12);$tag='';$cipher=openssl_encrypt($secret,'aes-256-gcm',integration_encryption_key(),OPENSSL_RAW_DATA,$nonce,$tag);if($cipher===false)throw new RuntimeException('Não foi possível proteger o segredo da integração.');return base64_encode($nonce.$tag.$cipher);
+    $nonce = random_bytes(12);
+    $tag = '';
+    $key = hash_hkdf('sha256', integration_encryption_key(), 32, 'AFFILIEY integration secrets v2');
+    $cipher = openssl_encrypt($secret, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $nonce, $tag, $context, 16);
+    if ($cipher === false) throw new RuntimeException('Não foi possível proteger o segredo da integração.');
+    return 'v2:' . base64_encode($nonce . $tag . $cipher);
 }
-function integration_decrypt_secret(string $encoded): string
+function integration_decrypt_secret(string $encoded, string $context = ''): string
 {
-    $blob=base64_decode($encoded,true);if($blob===false||strlen($blob)<29)throw new RuntimeException('Segredo de integração inválido.');$plain=openssl_decrypt(substr($blob,28),'aes-256-gcm',integration_encryption_key(),OPENSSL_RAW_DATA,substr($blob,0,12),substr($blob,12,16));if($plain===false)throw new RuntimeException('Não foi possível abrir o segredo da integração.');return $plain;
+    $version2 = str_starts_with($encoded, 'v2:');
+    $blob = base64_decode($version2 ? substr($encoded, 3) : $encoded, true);
+    if ($blob === false || strlen($blob) < 29) throw new RuntimeException('Segredo de integração inválido.');
+    $key = integration_encryption_key();
+    if ($version2) $key = hash_hkdf('sha256', $key, 32, 'AFFILIEY integration secrets v2');
+    $plain = openssl_decrypt(substr($blob, 28), 'aes-256-gcm', $key, OPENSSL_RAW_DATA, substr($blob, 0, 12), substr($blob, 12, 16), $version2 ? $context : '');
+    if ($plain === false) throw new RuntimeException('Não foi possível abrir o segredo da integração.');
+    return $plain;
 }
 
 function integration_create(string $name,string $platform='kiwify',string $providedSecret=''): array
@@ -28,7 +68,8 @@ function integration_create(string $name,string $platform='kiwify',string $provi
     if($platform==='hotmart'&&($token===''||strlen($token)>140))throw new DomainException('Informe o Hottok da Hotmart (até 140 caracteres).');
     if($platform==='eduzz'&&($token===''||strlen($token)>255))throw new DomainException('Informe a chave de assinatura da Eduzz (até 255 caracteres).');
     $pdo=app_db();$id=new_id('conn');
-    try{$pdo->prepare('INSERT INTO integration_connections(id,tenant_id,name,platform,token_hash,secret_ciphertext) VALUES(?,?,?,?,?,?)')->execute([$id,tenant_id(),$name,$platform,hash('sha256',$token),integration_encrypt_secret($token)]);}catch(PDOException $e){if(str_contains(strtolower($e->getMessage()),'unique'))throw new DomainException('Já existe uma conexão com esse nome neste espaço.');throw $e;}
+    $tenantId = tenant_id();
+    try{$pdo->prepare('INSERT INTO integration_connections(id,tenant_id,name,platform,token_hash,secret_ciphertext) VALUES(?,?,?,?,?,?)')->execute([$id,$tenantId,$name,$platform,hash('sha256',$token),integration_encrypt_secret($token,$tenantId.':'.$id)]);}catch(PDOException $e){if(str_contains(strtolower($e->getMessage()),'unique'))throw new DomainException('Já existe uma conexão com esse nome neste espaço.');throw $e;}
     return ['id'=>$id,'name'=>$name,'platform'=>$platform,'token'=>in_array($platform,['kiwify','applyfy'],true)?$token:''];
 }
 
@@ -56,7 +97,7 @@ function integration_change(string $id,string $action): ?string
     $pdo=app_db();$stmt=$pdo->prepare('SELECT id,platform FROM integration_connections WHERE id=? AND tenant_id=?');$stmt->execute([$id,tenant_id()]);$connection=$stmt->fetch();if(!$connection)throw new DomainException('Conexão não encontrada neste espaço.');
     if($action==='toggle'){$pdo->prepare("UPDATE integration_connections SET status=CASE status WHEN 'active' THEN 'paused' ELSE 'active' END WHERE id=? AND tenant_id=?")->execute([$id,tenant_id()]);return null;}
     if($action==='rotate'&&$connection['platform']==='hotmart')throw new DomainException('O Hottok é gerenciado pela Hotmart. Para trocá-lo, atualize a credencial da conexão.');
-    if($action==='rotate'){$token=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');$pdo->prepare('UPDATE integration_connections SET token_hash=?,secret_ciphertext=? WHERE id=? AND tenant_id=?')->execute([hash('sha256',$token),integration_encrypt_secret($token),$id,tenant_id()]);return $token;}
+    if($action==='rotate'){$token=rtrim(strtr(base64_encode(random_bytes(32)),'+/','-_'),'=');$tenantId=tenant_id();$pdo->prepare('UPDATE integration_connections SET token_hash=?,secret_ciphertext=? WHERE id=? AND tenant_id=?')->execute([hash('sha256',$token),integration_encrypt_secret($token,$tenantId.':'.$id),$id,$tenantId]);return $token;}
     throw new DomainException('Ação de conexão inválida.');
 }
 

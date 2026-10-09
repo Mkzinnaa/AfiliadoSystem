@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../modules/affiliates.php';
+require_once __DIR__ . '/../modules/auth.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+start_app_session();
 if (empty($_SESSION['affiliate_apply_csrf'])) $_SESSION['affiliate_apply_csrf'] = bin2hex(random_bytes(32));
 $csrf = (string)$_SESSION['affiliate_apply_csrf'];
 $slug = trim((string)($_GET['workspace'] ?? $_POST['workspace'] ?? ''));

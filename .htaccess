@@ -2,6 +2,9 @@
 # serve only the public/ directory. Prefer setting the domain document root
 # directly to public/ in cPanel.
 Options -Indexes
+<FilesMatch "(^\.env(?:\..*)?$|^\.user\.ini$|^error_log$)">
+  Require all denied
+</FilesMatch>
 RewriteEngine On
 RewriteRule ^public/ - [L]
 RewriteRule ^(.*)$ public/$1 [L]

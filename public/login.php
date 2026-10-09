@@ -53,11 +53,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     } else {
         $password = (string)($_POST['password'] ?? '');
-        if (attempt_login((string)$email, $password)) {
+        $attemptKey = app_login_attempt_key('web', (string)$email);
+        if (app_login_is_locked($attemptKey)) {
+            header('Retry-After: 900');
+            $error = 'Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente.';
+        } elseif (attempt_login((string)$email, $password)) {
+            app_login_clear_failures($attemptKey);
             header('Location: dashboard.php');
             exit;
+        } else {
+            app_login_record_failure($attemptKey);
+            $error = 'E-mail ou senha incorretos. Confira os dados e tente novamente.';
         }
-        $error = 'E-mail ou senha incorretos. Confira os dados e tente novamente.';
     }
 }
 

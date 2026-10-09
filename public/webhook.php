@@ -3,6 +3,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/../modules/integrations.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
+header('Referrer-Policy: no-referrer');
+if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (int)($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+    header('Strict-Transport-Security: max-age=31536000');
+}
 function webhook_reply(int $status, array $body): never
 {
     http_response_code($status);
@@ -19,7 +23,7 @@ try {
     $find->execute([$connectionId]);
     $platform = $find->fetchColumn();
     if ($platform === 'kiwify') {
-        $signature = (string)($_GET['signature'] ?? '');
+        $signature = (string)($_SERVER['HTTP_X_KIWIFY_SIGNATURE'] ?? $_GET['signature'] ?? '');
         if ($signature === '') webhook_reply(401, ['ok' => false, 'message' => 'Assinatura Kiwify ausente.']);
         $result = kiwify_handle_webhook($connectionId, $signature, $raw);
     } elseif ($platform === 'hotmart') {
@@ -31,7 +35,7 @@ try {
     } elseif ($platform === 'eduzz') {
         $result = eduzz_handle_webhook($connectionId, $raw);
     } elseif ($platform === 'applyfy') {
-        $token = (string)($_GET['token'] ?? '');
+        $token = (string)($_SERVER['HTTP_X_AFFILIEY_WEBHOOK_TOKEN'] ?? $_GET['token'] ?? '');
         $result = applyfy_handle_webhook($connectionId, $token, $raw);
     } else webhook_reply(404, ['ok' => false, 'message' => 'Conexão não encontrada.']);
     webhook_reply(200, ['ok' => true, 'duplicate' => (bool)($result['duplicate'] ?? false), 'ignored' => (bool)($result['ignored'] ?? false), 'message' => $result['message'] ?? 'Evento processado.']);

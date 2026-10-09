@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/env.php';
 
 // Conta fixa apenas para demonstração. Para produção, carregue os usuários
 // de um banco de dados e guarde apenas hashes de senha persistentes.
@@ -16,21 +17,22 @@ const APP_NAME = 'AFFILIEY';
 
 function demo_enabled(): bool
 {
+    $host = strtolower((string)parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST));
+    if (!in_array($host, ['localhost', '127.0.0.1', '::1'], true)) return false;
     $configured = getenv('VERTICE_DEMO_ENABLED');
     if ($configured !== false) return filter_var($configured, FILTER_VALIDATE_BOOLEAN);
-    $host = strtolower((string)parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST));
-    return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+    return true;
 }
 
 function database_settings(): array
 {
     $settings = [
-        'driver' => strtolower((string)(getenv('VERTICE_DB_DRIVER') ?: 'mysql')),
-        'host' => getenv('VERTICE_DB_HOST') ?: '127.0.0.1',
-        'port' => getenv('VERTICE_DB_PORT') ?: '3306',
-        'database' => getenv('VERTICE_DB_NAME') ?: '',
-        'username' => getenv('VERTICE_DB_USER') ?: '',
-        'password' => getenv('VERTICE_DB_PASSWORD') ?: '',
+        'driver' => 'mysql',
+        'host' => '127.0.0.1',
+        'port' => '3306',
+        'database' => '',
+        'username' => '',
+        'password' => '',
         'charset' => 'utf8mb4',
     ];
     $privateConfig = __DIR__ . '/../.runtime/app-data/database.php';
@@ -38,6 +40,15 @@ function database_settings(): array
         $privateSettings = require $privateConfig;
         if (is_array($privateSettings)) $settings = array_replace($settings, $privateSettings);
     }
+    $environment = [
+        'driver' => 'VERTICE_DB_DRIVER', 'host' => 'VERTICE_DB_HOST', 'port' => 'VERTICE_DB_PORT',
+        'database' => 'VERTICE_DB_NAME', 'username' => 'VERTICE_DB_USER', 'password' => 'VERTICE_DB_PASSWORD',
+    ];
+    foreach ($environment as $setting => $variable) {
+        $value = getenv($variable);
+        if ($value !== false) $settings[$setting] = $value;
+    }
+    $settings['driver'] = strtolower((string)$settings['driver']);
     return $settings;
 }
 

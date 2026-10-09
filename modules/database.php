@@ -254,6 +254,7 @@ function complete_password_reset(string $token, string $password): bool
         $reset = $stmt->fetch();
         if (!$reset) { $pdo->commit(); return false; }
         $pdo->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([password_hash($password,PASSWORD_DEFAULT),$reset['user_id']]);
+        $pdo->prepare('UPDATE api_access_tokens SET revoked_at=UTC_TIMESTAMP() WHERE user_id=? AND revoked_at IS NULL')->execute([$reset['user_id']]);
         $pdo->prepare('UPDATE password_reset_tokens SET used_at=CURRENT_TIMESTAMP WHERE user_id=? AND used_at IS NULL')->execute([$reset['user_id']]);
         $pdo->commit();
         return true;

@@ -9,6 +9,11 @@ function api_init(): void
 {
     header('Cache-Control: no-store, private');
     header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: no-referrer');
+    if ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (int)($_SERVER['SERVER_PORT'] ?? 0) === 443) {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
     header('Vary: Origin');
 
     $origin = trim((string)($_SERVER['HTTP_ORIGIN'] ?? ''));
@@ -113,22 +118,20 @@ function api_issue_token(string $userId, string $tenantId, string $deviceName): 
 
 function api_login_attempt_key(string $email): string
 {
-    return hash('sha256', strtolower(trim($email)) . "\n" . (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
+    return app_login_attempt_key('api', $email);
 }
 
 function api_login_is_locked(string $key): bool
 {
-    $query = app_db()->prepare('SELECT locked_until>UTC_TIMESTAMP() FROM api_login_attempts WHERE attempt_key=?');
-    $query->execute([$key]);
-    return (bool)$query->fetchColumn();
+    return app_login_is_locked($key);
 }
 
 function api_login_record_failure(string $key): void
 {
-    app_db()->prepare('INSERT INTO api_login_attempts(attempt_key,attempts,window_started_at) VALUES(?,1,UTC_TIMESTAMP()) ON DUPLICATE KEY UPDATE attempts=IF(window_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),1,attempts+1),locked_until=IF(window_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),NULL,IF(attempts>=10,DATE_ADD(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),locked_until)),window_started_at=IF(window_started_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 15 MINUTE),UTC_TIMESTAMP(),window_started_at)')->execute([$key]);
+    app_login_record_failure($key);
 }
 
 function api_login_clear_failures(string $key): void
 {
-    app_db()->prepare('DELETE FROM api_login_attempts WHERE attempt_key=?')->execute([$key]);
+    app_login_clear_failures($key);
 }

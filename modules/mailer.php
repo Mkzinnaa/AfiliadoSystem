@@ -3,10 +3,22 @@ declare(strict_types=1);
 
 function app_mail_settings(): array
 {
+    $settings = [];
     $path = __DIR__ . '/../.runtime/app-data/mail.php';
-    if (!is_file($path)) return [];
-    $settings = require $path;
-    if (!is_array($settings)) return [];
+    if (is_file($path)) {
+        $privateSettings = require $path;
+        if (is_array($privateSettings)) $settings = $privateSettings;
+    }
+    $environment = [
+        'host' => 'VERTICE_SMTP_HOST', 'port' => 'VERTICE_SMTP_PORT',
+        'encryption' => 'VERTICE_SMTP_ENCRYPTION', 'username' => 'VERTICE_SMTP_USERNAME',
+        'password' => 'VERTICE_SMTP_PASSWORD', 'from_email' => 'VERTICE_SMTP_FROM_EMAIL',
+        'from_name' => 'VERTICE_SMTP_FROM_NAME', 'app_url' => 'VERTICE_APP_URL',
+    ];
+    foreach ($environment as $setting => $variable) {
+        $value = getenv($variable);
+        if ($value !== false) $settings[$setting] = $value;
+    }
     return $settings;
 }
 

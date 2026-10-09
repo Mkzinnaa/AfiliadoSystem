@@ -42,72 +42,67 @@ Todas as respostas usam `{ "data": ..., "meta": ..., "error": ... }`. CORS aceit
 
 ## Desenvolvimento local
 
-Configure o `pdo_mysql` no PHP local. O runtime PHP de desenvolvimento fica em `.runtime/` e não é enviado ao Git. Crie `.runtime/app-data/database.php`:
+Configure o `pdo_mysql` no PHP local. O runtime PHP de desenvolvimento fica em `.runtime/` e não é enviado ao Git. Para credenciais e configuração, copie `.env.example` para `.env` e preencha os valores locais. O `.env` real é ignorado pelo Git; o exemplo versionado não contém segredos. Variáveis definidas pelo servidor têm prioridade sobre o arquivo. A configuração privada legada `.runtime/app-data/database.php` continua aceita.
 
-```php
-<?php
-return [
-    'driver' => 'mysql',
-    'host' => '127.0.0.1',
-    'port' => '3306',
-    'database' => 'nome_do_banco',
-    'username' => 'usuario_mysql',
-    'password' => 'senha_mysql',
-    'charset' => 'utf8mb4',
-];
+```sh
+Copy-Item .env.example .env
 ```
 
-O arquivo é privado e ignorado pelo Git. Com o MySQL local configurado, inicie o servidor:
+Defina `VERTICE_DB_NAME`, `VERTICE_DB_USER` e `VERTICE_DB_PASSWORD` no `.env`. Deixe `VERTICE_COOKIE_SECURE` vazio para usar o servidor HTTP local. O acesso demo fica disponível por padrão apenas em localhost; `VERTICE_DEMO_ENABLED=false` pode desativá-lo.
+
+Com o MySQL local configurado, inicie o servidor:
 
 ```sh
 php -S 127.0.0.1:8000 -t public
 ```
 
-Em `localhost`, um espaço demo é criado automaticamente (`123` / `123456789`). Esse acesso serve apenas para desenvolvimento local.
+Em `localhost`, um espaço demo é criado automaticamente (`123` / `123456789`) quando `VERTICE_DEMO_ENABLED` não está definido ou está ativado. Esse acesso serve apenas para desenvolvimento local.
 
 ## Publicação no cPanel
 
 1. Em **MySQL Database Wizard**, crie o banco e um usuário, concedendo os privilégios necessários sobre esse banco.
 2. Mantenha o repositório em uma pasta privada fora de `public_html`, por exemplo `~/vertice`, e aponte o domínio para `~/vertice/public`. Se não puder escolher a raiz do domínio, o `.htaccess` da raiz encaminha as requisições a `public/`, desde que Apache permita `mod_rewrite` e `.htaccess`.
 3. Selecione PHP 8.1+ e habilite `pdo_mysql` e `openssl`.
-4. Crie `~/vertice/.runtime/app-data/database.php` fora da raiz pública, preenchendo os valores com os dados apresentados pelo cPanel:
+4. Copie `~/vertice/.env.example` para `~/vertice/.env` fora da raiz pública e preencha as variáveis abaixo com os dados do cPanel. Restrinja o arquivo (`chmod 600 ~/vertice/.env`) e mantenha `VERTICE_DEMO_ENABLED=false` e `VERTICE_COOKIE_SECURE=true` em produção:
 
-   ```php
-   <?php
-   return [
-       'driver' => 'mysql',
-       'host' => 'localhost',
-       'port' => '3306',
-       'database' => 'PREFIXO_nome_do_banco',
-       'username' => 'PREFIXO_usuario',
-       'password' => 'SENHA_DO_USUARIO_MYSQL',
-       'charset' => 'utf8mb4',
-   ];
+   ```dotenv
+   VERTICE_DB_DRIVER=mysql
+   VERTICE_DB_HOST=HOST_MYSQL_DO_CPANEL
+   VERTICE_DB_PORT=3306
+   VERTICE_DB_NAME=PREFIXO_nome_do_banco
+   VERTICE_DB_USER=PREFIXO_usuario
+   VERTICE_DB_PASSWORD=SENHA_DO_USUARIO_MYSQL
+   VERTICE_DEMO_ENABLED=false
+   VERTICE_COOKIE_SECURE=true
+   VERTICE_APP_URL=https://afiliados.seudominio.com.br
+   VERTICE_SETUP_KEY=CHAVE_ALEATORIA_COM_PELO_MENOS_32_CARACTERES
    ```
 
-   Use o host fornecido pela hospedagem; pode ser diferente de `localhost`. Não salve essa configuração no repositório nem compartilhe a senha.
-5. Para convites e recuperação de senha por e-mail, crie `~/vertice/.runtime/app-data/mail.php` com as configurações SMTP da caixa de e-mail do domínio:
+   Use o host fornecido pela hospedagem; pode ser diferente de `localhost`. Não salve o `.env` no repositório nem compartilhe seu conteúdo. O sistema ainda aceita os arquivos privados `.runtime/app-data/database.php` e `mail.php` durante a migração.
+5. Para convites e recuperação de senha por e-mail, configure as variáveis SMTP no mesmo `.env`:
 
-   ```php
-   <?php
-   return [
-       'app_url' => 'https://afiliados.seudominio.com.br',
-       'host' => 'mail.seudominio.com.br',
-       'port' => 587,
-       'encryption' => 'tls', // ou 'ssl' com a porta 465
-       'username' => 'nao-responda@seudominio.com.br',
-       'password' => 'SENHA_DA_CAIXA_DE_EMAIL',
-       'from_email' => 'nao-responda@seudominio.com.br',
-       'from_name' => 'AFFILIEY',
-   ];
+   ```dotenv
+   VERTICE_SMTP_HOST=mail.seudominio.com.br
+   VERTICE_SMTP_PORT=587
+   VERTICE_SMTP_ENCRYPTION=tls
+   VERTICE_SMTP_USERNAME=nao-responda@seudominio.com.br
+   VERTICE_SMTP_PASSWORD=SENHA_DA_CAIXA_DE_EMAIL
+   VERTICE_SMTP_FROM_EMAIL=nao-responda@seudominio.com.br
+   VERTICE_SMTP_FROM_NAME=AFFILIEY
    ```
 
-   Substitua os exemplos pelos dados exibidos pelo seu provedor de e-mail. `app_url` deve ser a URL HTTPS pública do sistema. O arquivo é privado e ignorado pelo Git.
+   Substitua os exemplos pelos dados exibidos pelo seu provedor. `VERTICE_APP_URL` deve ser a URL HTTPS pública do sistema. Nunca publique o `.env`.
    O módulo **Comunicados** envia mensagens aos afiliados ativos de forma assíncrona. Para processar a fila, crie no Cron Jobs do cPanel uma tarefa para executar a cada minuto (ajuste o caminho do PHP e do repositório à hospedagem):
 
    ```sh
    /usr/local/bin/php /home/USUARIO/vertice/scripts/process-announcements.php
    ```
+
+## Proteção de dados e chaves
+
+Senhas de usuários e tokens de acesso da API são armazenados como hashes. Segredos recuperáveis das integrações usam AES-256-GCM com chaves derivadas separadamente para criptografia; o formato versionado novo continua lendo os segredos criptografados no formato anterior. A chave raiz fica em `.runtime/app-data/webhook.key`, fora da pasta pública; preserve-a em backup privado criptografado junto com o banco, ou as credenciais de integração não poderão ser recuperadas. O sistema restringe essa chave a `0600` e a pasta privada a `0700` em sistemas Unix.
+
+E-mails de contas e afiliados são necessários para login e comunicação e permanecem legíveis no banco. Proteja o MySQL e os backups no provedor. O código desativa a exibição de erros e registra os detalhes apenas nos logs do servidor. O login web e os painéis administrativos bloqueiam tentativas repetidas; redefinir uma senha revoga os tokens da API daquele usuário.
 
    O script processa até 20 destinatários por execução e tenta novamente falhas até três vezes. O caminho do PHP pode ser diferente no servidor; confirme-o com a hospedagem. O SMTP precisa estar configurado para os comunicados serem enviados.
 6. Garanta que o usuário PHP possa criar arquivos em `~/vertice/.runtime/app-data`; não use permissão `777`.

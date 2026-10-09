@@ -3,6 +3,6 @@ AddType application/manifest+json .webmanifest
 DirectoryIndex index.php
 
 # Block dotfiles and accidental backups/config/database artifacts.
-<FilesMatch "(^\.|\.(ini|log|sqlite|sqlite3|db|bak|backup|sql)$)">
+<FilesMatch "(^\.|^error_log$|\.(ini|log|sqlite|sqlite3|db|bak|backup|sql)$)">
   Require all denied
 </FilesMatch>
