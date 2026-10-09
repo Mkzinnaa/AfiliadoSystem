@@ -21,6 +21,10 @@
 # PHP runtime error logs can be generated inside cPanel's checkout
 error_log
 
+# cPanel domain and certificate validation files (preserve on the server)
+/.well-known/
+/public/.well-known/
+
 # Editor and OS files
 .DS_Store
 Thumbs.db
