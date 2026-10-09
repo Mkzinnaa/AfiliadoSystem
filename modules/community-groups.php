@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/auth.php';
 
-function community_text_length(string $value): int
+function community_group_text_length(string $value): int
 {
     return preg_match_all('/./us',$value) ?: 0;
 }
@@ -81,8 +81,8 @@ function community_group_create(array $input): string
     if($tenantId===''||!app_user_can('communities','create',$user)) throw new DomainException('Sem permissão para criar grupos.');
     $name=trim((string)($input['name']??'')); $description=trim((string)($input['description']??''));
     $policy=(string)($input['join_policy']??'automatic'); $cover=trim((string)($input['cover_url']??''));
-    if($name===''||community_text_length($name)>160) throw new DomainException('Informe um nome de grupo com até 160 caracteres.');
-    if(community_text_length($description)>5000) throw new DomainException('A descrição deve ter até 5.000 caracteres.');
+    if($name===''||community_group_text_length($name)>160) throw new DomainException('Informe um nome de grupo com até 160 caracteres.');
+    if(community_group_text_length($description)>5000) throw new DomainException('A descrição deve ter até 5.000 caracteres.');
     if(!in_array($policy,['automatic','approval'],true)) throw new DomainException('Política de ingresso inválida.');
     if($cover!==''&&(!filter_var($cover,FILTER_VALIDATE_URL)||!in_array(strtolower((string)parse_url($cover,PHP_URL_SCHEME)),['https'],true))) throw new DomainException('A capa deve usar um endereço HTTPS válido.');
     $id=new_id('grp');
@@ -178,7 +178,7 @@ function community_resource_create(array $input): void
     $user=current_user();$tenantId=(string)($user['tenant_id']??'');$groupId=(string)($input['group_id']??'');
     community_assert_producer_access($tenantId,$groupId,'edit');
     $type=(string)($input['resource_type']??'content');$title=trim((string)($input['title']??''));$body=trim((string)($input['body']??''));$url=trim((string)($input['resource_url']??''));$starts=trim((string)($input['starts_at']??''));
-    if(!in_array($type,['content','announcement','meeting'],true)||$title===''||community_text_length($title)>160||community_text_length($body)>10000)throw new DomainException('Revise o tipo, título e texto do conteúdo.');
+    if(!in_array($type,['content','announcement','meeting'],true)||$title===''||community_group_text_length($title)>160||community_group_text_length($body)>10000)throw new DomainException('Revise o tipo, título e texto do conteúdo.');
     if($url!==''&&(!filter_var($url,FILTER_VALIDATE_URL)||strtolower((string)parse_url($url,PHP_URL_SCHEME))!=='https'))throw new DomainException('Links publicados precisam usar HTTPS.');
     if($starts!==''){ $date=DateTimeImmutable::createFromFormat('Y-m-d\TH:i',$starts);if(!$date)throw new DomainException('Data do evento inválida.');$starts=$date->format('Y-m-d H:i:s'); } else $starts='';
     $group=app_db()->prepare('SELECT 1 FROM community_groups WHERE tenant_id=? AND id=?');$group->execute([$tenantId,$groupId]);if(!$group->fetchColumn())throw new DomainException('Grupo não encontrado.');
