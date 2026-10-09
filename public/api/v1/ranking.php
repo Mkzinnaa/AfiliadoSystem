@@ -4,6 +4,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/../../../modules/ranking.php';
 api_method('GET');
 api_require_auth();
+api_require_permission('ranking');
 $metric = (string)($_GET['metric'] ?? 'revenue');
 if (!in_array($metric, ['revenue','orders','new_customers','conversion','growth'], true)) api_fail('Métrica inválida.', 422, 'invalid_metric');
 $end = (string)($_GET['end'] ?? gmdate('Y-m-d'));

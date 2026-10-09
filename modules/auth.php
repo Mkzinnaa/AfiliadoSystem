@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/tenancy.php';
 require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/permissions.php';
 
 function start_app_session(): void
 {
@@ -80,10 +81,99 @@ function attempt_login(string $email, string $password): bool
 
 function require_login(): void
 {
-    if (current_user() === null) {
+    $user = current_user();
+    if ($user === null) {
         header('Location: login.php');
         exit;
     }
+    if (!isset($GLOBALS['VERTICE_API_USER'])) {
+        $user = app_refresh_session_membership($user);
+    }
+    $profiles = app_enabled_profiles($user);
+    $script = strtolower(basename((string)($_SERVER['SCRIPT_NAME'] ?? '')));
+    $requiredProfile = str_starts_with($script, 'affiliate-') && $script !== 'affiliate-apply.php' ? 'affiliate' : (app_permission_module_for_request() !== null ? 'producer' : null);
+    if ($requiredProfile !== null && !in_array($requiredProfile, $profiles, true)) {
+        http_response_code(403);
+        exit('Este ambiente não está habilitado para sua conta.');
+    }
+    $active = (string)($user['active_profile'] ?? 'producer');
+    if ($requiredProfile !== null && $active !== $requiredProfile) {
+        header('Location: ' . ($active === 'affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
+        exit;
+    }
+    $module = app_permission_module_for_request();
+    if ($module !== null) {
+        $action = app_permission_action_for_request($module);
+        if (!app_user_can($module, $action, $user)) {
+            http_response_code(403);
+            exit('Seu acesso não permite realizar esta ação. Peça ao proprietário do espaço para ajustar suas permissões.');
+        }
+    }
+}
+
+function app_refresh_session_membership(array $user): array
+{
+    if (empty($user['id']) || session_status() !== PHP_SESSION_ACTIVE) return $user;
+    $tenantId = trim((string)($user['tenant_id'] ?? ''));
+    if ($tenantId !== '') {
+        $query = app_db()->prepare('SELECT m.role,t.name AS tenant_name FROM memberships m JOIN tenants t ON t.id=m.tenant_id WHERE m.tenant_id=? AND m.user_id=? LIMIT 1');
+        $query->execute([$tenantId,(string)$user['id']]);
+        $membership = $query->fetch();
+        if ($membership) {
+            $_SESSION['affiliate_user']['role'] = (string)$membership['role'];
+            $_SESSION['affiliate_user']['tenant_name'] = (string)$membership['tenant_name'];
+        } else {
+            unset($_SESSION['affiliate_user']['tenant_id'],$_SESSION['affiliate_user']['tenant_name']);
+            $_SESSION['affiliate_user']['role'] = 'affiliate';
+        }
+    }
+    $user = $_SESSION['affiliate_user'];
+    $profiles = app_enabled_profiles($user);
+    if (!in_array((string)($user['active_profile'] ?? ''),$profiles,true) && $profiles) {
+        $_SESSION['affiliate_user']['active_profile'] = $profiles[0];
+        $user['active_profile'] = $profiles[0];
+    }
+    return $user;
+}
+
+function app_enabled_profiles(array $user): array
+{
+    $profiles = [];
+    if (!empty($user['id'])) {
+        $userId=(string)$user['id'];
+        $stored=app_user_profiles($userId);
+        if (in_array('producer',$stored,true) && !empty($user['tenant_id'])) {
+            $membership=app_db()->prepare('SELECT 1 FROM memberships WHERE tenant_id=? AND user_id=? LIMIT 1');
+            $membership->execute([(string)$user['tenant_id'],$userId]);
+            if($membership->fetchColumn())$profiles[]='producer';
+        }
+        if(in_array('affiliate',$stored,true)){
+            $linked=app_db()->prepare("SELECT 1 FROM affiliate_account_links l JOIN affiliates a ON a.tenant_id=l.tenant_id AND a.id=l.affiliate_id WHERE l.user_id=? AND l.status='active' AND a.status='active' LIMIT 1");
+            $linked->execute([$userId]);if($linked->fetchColumn())$profiles[]='affiliate';
+        }
+        if (isset($GLOBALS['VERTICE_API_USER']['profile'])) $profiles[] = (string)$GLOBALS['VERTICE_API_USER']['profile'];
+    }
+    return array_values(array_unique(array_intersect($profiles, ['producer','affiliate'])));
+}
+
+function app_profile_switcher(): string
+{
+    $user = current_user();
+    if (!$user) return '';
+    $profiles = app_enabled_profiles($user);
+    if (!$profiles) return '';
+    start_app_session();
+    if (empty($_SESSION['profile_switch_csrf'])) $_SESSION['profile_switch_csrf'] = bin2hex(random_bytes(32));
+    $active = (string)($user['active_profile'] ?? 'producer');
+    $label = $active === 'affiliate' ? 'Afiliado' : 'Produtor';
+    $html = '<details class="profile-switcher"><summary>Ambiente: <strong>' . $label . '</strong></summary><div class="profile-switcher-menu">';
+    foreach (['producer'=>'Painel do produtor','affiliate'=>'Painel do afiliado'] as $profile=>$text) {
+        if (!in_array($profile,$profiles,true)) continue;
+        $html .= '<form method="post" action="profile-switch.php"><input type="hidden" name="csrf" value="' . htmlspecialchars((string)$_SESSION['profile_switch_csrf'],ENT_QUOTES,'UTF-8') . '"><input type="hidden" name="profile" value="' . $profile . '"><button type="submit"' . ($active===$profile?' aria-current="true"':'') . '>' . $text . '</button></form>';
+    }
+    if(!in_array('affiliate',$profiles,true))$html.='<a class="profile-switcher-action" href="affiliate-access.php">Tenho convite de afiliado</a>';
+    if(!in_array('producer',$profiles,true))$html.='<a class="profile-switcher-action" href="workspace-create.php">Criar meu espaço de produtor</a>';
+    return $html . '</div></details>';
 }
 
 function logout_user(): void
@@ -106,15 +196,13 @@ function logout_user(): void
 
 function require_role(array $allowedRoles): void
 {
+    // Keep legacy call sites compatible; require_login enforces the current route/action permission.
     require_login();
-    $role = (string)(current_user()['role'] ?? 'viewer');
-    if (!in_array($role, $allowedRoles, true)) {
-        http_response_code(403);
-        exit('Você não tem permissão para realizar esta ação.');
-    }
 }
 
-function can_manage_workspace(): bool
+function can_manage_workspace(?string $module = null, string $action = 'create'): bool
 {
-    return in_array((string)(current_user()['role'] ?? 'viewer'), ['owner','admin','manager'], true);
+    $module ??= app_permission_module_for_request();
+    if ($module === null) return in_array((string)(current_user()['role'] ?? 'viewer'), ['owner','admin','manager'], true);
+    return app_user_can($module, $action);
 }

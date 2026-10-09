@@ -40,6 +40,20 @@ Endpoints atuais:
 
 Todas as respostas usam `{ "data": ..., "meta": ..., "error": ... }`. CORS aceita o domínio do AFFILIEY e as origens padrão do Capacitor; origens web adicionais podem ser incluídas em `VERTICE_API_ALLOWED_ORIGINS`, separadas por vírgulas. A primeira versão oferece autenticação e leitura dos módulos; operações de escrita pelo app podem ser adicionadas por endpoint conforme forem necessárias.
 
+## Permissões da equipe
+
+O proprietário pode abrir **Equipe → Permissões por ação**, escolher um membro e liberar ou bloquear ações por módulo. As permissões personalizadas são salvas no MySQL e aplicadas no servidor tanto às páginas quanto aos endpoints móveis de leitura. Sem uma configuração personalizada, os papéis mantêm os acessos padrão; o proprietário sempre conserva controle total. O botão de restauração remove a personalização e volta aos padrões do papel.
+
+## Ambientes de produtor e afiliado
+
+Uma conta pode habilitar os dois ambientes sem duplicar o usuário. Um produtor envia um convite individual pela lista de afiliados; o convite é um token aleatório, salvo como hash e válido por sete dias. A ativação exige a senha existente da conta ou cria uma conta com a senha escolhida pelo afiliado. O e-mail cadastrado, sozinho, não concede acesso. O seletor **Ambiente** alterna entre Produtor e Afiliado e o backend confere o perfil e a associação novamente nas requisições. Uma conta afiliada também pode criar um espaço de produtor mantendo o mesmo login.
+
+O ambiente de afiliado limita vendas, comissão, metas, produtos, comunicados, materiais, eventos e conversas aos vínculos ativos da própria conta. Comissões ausentes da plataforma de origem são exibidas como não informadas, sem estimativa. O ranking fica privado por padrão; o produtor pode autorizar o compartilhamento e escolher a métrica em **Ranking**. O afiliado pode criar metas pessoais por faturamento, vendas ou clientes novos, calculadas com vendas aprovadas sincronizadas. Materiais aceitam links HTTPS; eventos oferecem RSVP e links externos; suporte é feito por conversas privadas. Upload de arquivos, chat ao vivo e notificações automáticas por e-mail para suporte/eventos não estão incluídos nesta etapa.
+
+No app, faça login com `{"email":"...","password":"...","profile":"affiliate"}` para receber um token Bearer exclusivo do ambiente afiliado. Endpoints de afiliado estão em `/api/v1/affiliate/` e não aceitam tokens do produtor. O modelo de contas atual mantém um espaço de produtor por usuário; a administração de múltiplos espaços pela mesma identidade ainda requer uma seleção de organização e ajuste próprio no modelo de sessão.
+
+As tabelas dos novos módulos são criadas de forma aditiva quando o sistema conecta ao MySQL. Antes de atualizar um banco de produção, faça backup e valide a aplicação em staging.
+
 ## Desenvolvimento local
 
 Configure o `pdo_mysql` no PHP local. O runtime PHP de desenvolvimento fica em `.runtime/` e não é enviado ao Git. Para credenciais e configuração, copie `.env.example` para `.env` e preencha os valores locais. O `.env` real é ignorado pelo Git; o exemplo versionado não contém segredos. Variáveis definidas pelo servidor têm prioridade sobre o arquivo. A configuração privada legada `.runtime/app-data/database.php` continua aceita.

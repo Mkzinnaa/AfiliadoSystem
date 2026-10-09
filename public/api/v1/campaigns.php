@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../modules/affiliates.php';
 require_once __DIR__ . '/../../../modules/campaigns.php';
 api_method('GET');
 api_require_auth();
+api_require_permission('campaigns');
 $affiliates = affiliate_read_all();
 $campaigns = campaigns_read_all();
 $data = [];

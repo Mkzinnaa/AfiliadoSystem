@@ -96,24 +96,50 @@ function api_require_auth(): array
 {
     $token = api_access_token();
     if ($token === null) api_fail('Informe um token Bearer válido.', 401, 'unauthorized');
-    $query = app_db()->prepare('SELECT t.id,t.tenant_id,t.user_id,u.name,u.email,m.role,ten.name AS tenant_name FROM api_access_tokens t JOIN memberships m ON m.tenant_id=t.tenant_id AND m.user_id=t.user_id JOIN users u ON u.id=t.user_id JOIN tenants ten ON ten.id=t.tenant_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>UTC_TIMESTAMP() LIMIT 1');
+    $query = app_db()->prepare("SELECT t.id,t.tenant_id,t.user_id,u.name,u.email,m.role,ten.name AS tenant_name,'producer' AS profile FROM api_access_tokens t JOIN memberships m ON m.tenant_id=t.tenant_id AND m.user_id=t.user_id JOIN users u ON u.id=t.user_id JOIN tenants ten ON ten.id=t.tenant_id WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>UTC_TIMESTAMP() LIMIT 1");
     $query->execute([hash('sha256', $token)]);
     $user = $query->fetch();
+    if ($user) app_db()->prepare('UPDATE api_access_tokens SET last_used_at=UTC_TIMESTAMP() WHERE id=?')->execute([$user['id']]);
+    else {
+        $query=app_db()->prepare("SELECT t.id,NULL AS tenant_id,t.user_id,u.name,u.email,'affiliate' AS role,'' AS tenant_name,'affiliate' AS profile FROM affiliate_api_access_tokens t JOIN users u ON u.id=t.user_id JOIN user_profiles p ON p.user_id=u.id AND p.profile_key='affiliate' AND p.enabled=1 WHERE t.token_hash=? AND t.revoked_at IS NULL AND t.expires_at>UTC_TIMESTAMP() LIMIT 1");
+        $query->execute([hash('sha256',$token)]);$user=$query->fetch();
+        if($user) app_db()->prepare('UPDATE affiliate_api_access_tokens SET last_used_at=UTC_TIMESTAMP() WHERE id=?')->execute([$user['id']]);
+    }
     if (!$user) api_fail('A sessão expirou ou foi revogada. Entre novamente.', 401, 'token_expired');
-    app_db()->prepare('UPDATE api_access_tokens SET last_used_at=UTC_TIMESTAMP() WHERE id=?')->execute([$user['id']]);
     unset($user['id']);
+    $user['id'] = (string)$user['user_id'];
     $GLOBALS['VERTICE_API_USER'] = $user;
     return $user;
 }
 
-function api_issue_token(string $userId, string $tenantId, string $deviceName): array
+function api_require_permission(string $module, string $action = 'view'): void
+{
+    $user = $GLOBALS['VERTICE_API_USER'] ?? null;
+    if (!is_array($user) || ($user['profile'] ?? '') !== 'producer' || !app_user_can($module, $action, $user)) {
+        api_fail('Seu acesso não permite consultar este recurso. Peça ao proprietário do espaço para ajustar suas permissões.', 403, 'permission_denied');
+    }
+}
+
+function api_issue_token(string $userId, string $tenantId, string $deviceName, string $profile = 'producer'): array
 {
     $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
     $id = new_id('api');
     $expires = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->modify('+' . API_TOKEN_TTL_DAYS . ' days')->format('Y-m-d H:i:s');
-    $query = app_db()->prepare('INSERT INTO api_access_tokens(id,tenant_id,user_id,token_hash,device_name,expires_at) VALUES(?,?,?,?,?,?)');
-    $query->execute([$id, $tenantId, $userId, hash('sha256', $token), $deviceName, $expires]);
+    if($profile==='affiliate') {
+        $query = app_db()->prepare('INSERT INTO affiliate_api_access_tokens(id,user_id,token_hash,device_name,expires_at) VALUES(?,?,?,?,?)');
+        $query->execute([$id,$userId,hash('sha256',$token),$deviceName,$expires]);
+    } else {
+        $query = app_db()->prepare('INSERT INTO api_access_tokens(id,tenant_id,user_id,token_hash,device_name,expires_at) VALUES(?,?,?,?,?,?)');
+        $query->execute([$id, $tenantId, $userId, hash('sha256', $token), $deviceName, $expires]);
+    }
     return ['access_token' => $token, 'token_type' => 'Bearer', 'expires_at' => $expires];
+}
+
+function api_require_affiliate_auth(): array
+{
+    $user=api_require_auth();
+    if(($user['profile']??'')!=='affiliate') api_fail('Este recurso exige um token do ambiente de afiliado.',403,'profile_required');
+    return $user;
 }
 
 function api_login_attempt_key(string $email): string

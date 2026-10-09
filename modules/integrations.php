@@ -125,11 +125,11 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
     $eventProduct->execute([$connection['tenant_id'],$connectionId,$productId]);$authorizedProduct=$eventProduct->fetch();
     // Continue to accept terminal status changes for a sale that was imported
     // while the product was authorized, even if the producer later pauses it.
-    $priorCommissionCents=null;
+    $priorCommissionCents=null;$priorCommissionSource='unknown';
     if(!$authorizedProduct&&in_array($eventType,['sale.refunded','sale.canceled'],true)){
-        $priorSale=$pdo->prepare('SELECT id,product_name,affiliate_id,affiliate_code,external_affiliate_id,commission_cents FROM sales_orders WHERE tenant_id=? AND connection_id=? AND external_order_id=? AND external_product_id=? LIMIT 1');
+        $priorSale=$pdo->prepare('SELECT id,product_name,affiliate_id,affiliate_code,external_affiliate_id,commission_cents,commission_source FROM sales_orders WHERE tenant_id=? AND connection_id=? AND external_order_id=? AND external_product_id=? LIMIT 1');
         $priorSale->execute([$connection['tenant_id'],$connectionId,$externalId,$productId]);$authorizedProduct=$priorSale->fetch();
-        if($authorizedProduct){$affiliateId=(string)$authorizedProduct['affiliate_id'];$storedAffiliateCode=(string)$authorizedProduct['affiliate_code'];$externalAffiliateId=(string)$authorizedProduct['external_affiliate_id'];$priorCommissionCents=$authorizedProduct['commission_cents']!==null?(int)$authorizedProduct['commission_cents']:null;}
+        if($authorizedProduct){$affiliateId=(string)$authorizedProduct['affiliate_id'];$storedAffiliateCode=(string)$authorizedProduct['affiliate_code'];$externalAffiliateId=(string)$authorizedProduct['external_affiliate_id'];$priorCommissionCents=$authorizedProduct['commission_cents']!==null?(int)$authorizedProduct['commission_cents']:null;$priorCommissionSource=(string)($authorizedProduct['commission_source']??'unknown');}
     }
     if(!$authorizedProduct)return integration_record_ignored_event($connection,['id'=>$eventId,'event'=>$eventType,'order_id'=>$externalId],'Produto não autorizado nesta conexão; o pedido não foi importado.');
     $affiliateId=$affiliateId??null;$storedAffiliateCode=$storedAffiliateCode??'';$affiliateCommission=0.0;
@@ -152,17 +152,18 @@ function integration_handle_webhook(string $connectionId,string $token,array $pa
     $externalCommission=filter_var($order['commission_amount']??null,FILTER_VALIDATE_FLOAT);
     if($externalCommission!==false&&$externalCommission!==null&&($externalCommission<0||$externalCommission>100000000))throw new DomainException('Comissão informada pela plataforma inválida.');
     if($priorCommissionCents===null&&($externalCommission===false||$externalCommission===null)){
-        $existingCommission=$pdo->prepare('SELECT commission_cents FROM sales_orders WHERE tenant_id=? AND connection_id=? AND external_order_id=? AND external_product_id=? LIMIT 1');
-        $existingCommission->execute([$connection['tenant_id'],$connectionId,$externalId,$productId]);$value=$existingCommission->fetchColumn();
-        if($value!==false&&$value!==null)$priorCommissionCents=(int)$value;
+        $existingCommission=$pdo->prepare('SELECT commission_cents,commission_source FROM sales_orders WHERE tenant_id=? AND connection_id=? AND external_order_id=? AND external_product_id=? LIMIT 1');
+        $existingCommission->execute([$connection['tenant_id'],$connectionId,$externalId,$productId]);$commissionRow=$existingCommission->fetch();
+        if($commissionRow){$priorCommissionCents=$commissionRow['commission_cents']!==null?(int)$commissionRow['commission_cents']:null;$priorCommissionSource=(string)$commissionRow['commission_source'];}
     }
-    $commissionAmount=$externalCommission!==false&&$externalCommission!==null?(float)$externalCommission:($priorCommissionCents!==null?$priorCommissionCents/100:(float)$amount*$affiliateCommission/100);
+    $commissionAmount=$externalCommission!==false&&$externalCommission!==null?(float)$externalCommission:($priorCommissionSource==='platform'&&$priorCommissionCents!==null?$priorCommissionCents/100:null);
+    $commissionSource=$commissionAmount===null?'unknown':'platform';
     $pdo->beginTransaction();
     try{
         $duplicate=$pdo->prepare('SELECT id,result FROM integration_events WHERE connection_id=? AND external_event_id=? FOR UPDATE');$duplicate->execute([$connectionId,$eventId]);$priorEvent=$duplicate->fetch();
         if($priorEvent&&$priorEvent['result']==='processed'){$pdo->commit();return ['duplicate'=>true,'message'=>'Evento já processado.'];}
-        $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,external_product_id,product_name,external_affiliate_id,affiliate_id,affiliate_code,customer_hash,amount_cents,commission_cents,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE external_product_id=VALUES(external_product_id),product_name=VALUES(product_name),external_affiliate_id=VALUES(external_affiliate_id),affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),customer_hash=COALESCE(VALUES(customer_hash),customer_hash),amount_cents=VALUES(amount_cents),commission_cents=VALUES(commission_cents),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
-        $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$productId,$productName!==''?$productName:$authorizedProduct['name'],$externalAffiliateId,$affiliateId,$storedAffiliateCode,$customerHash,(int)round((float)$amount*100),(int)round($commissionAmount*100),$currency,$status,$saleDate]);
+        $upsert=$pdo->prepare('INSERT INTO sales_orders(id,tenant_id,connection_id,external_order_id,external_product_id,product_name,external_affiliate_id,affiliate_id,affiliate_code,customer_hash,amount_cents,commission_cents,commission_source,currency,status,sold_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE external_product_id=VALUES(external_product_id),product_name=VALUES(product_name),external_affiliate_id=VALUES(external_affiliate_id),affiliate_id=VALUES(affiliate_id),affiliate_code=VALUES(affiliate_code),customer_hash=COALESCE(VALUES(customer_hash),customer_hash),amount_cents=VALUES(amount_cents),commission_cents=VALUES(commission_cents),commission_source=VALUES(commission_source),status=VALUES(status),sold_at=VALUES(sold_at),updated_at=CURRENT_TIMESTAMP');
+        $upsert->execute([new_id('sale'),$connection['tenant_id'],$connectionId,$externalId,$productId,$productName!==''?$productName:$authorizedProduct['name'],$externalAffiliateId,$affiliateId,$storedAffiliateCode,$customerHash,(int)round((float)$amount*100),$commissionAmount===null?null:(int)round($commissionAmount*100),$commissionSource,$currency,$status,$saleDate]);
         if($priorEvent){$pdo->prepare("UPDATE integration_events SET event_type=?,result='processed',message=? WHERE id=? AND tenant_id=?")->execute([$eventType,'Evento reprocessado após validar produto e afiliado autorizados.',$priorEvent['id'],$connection['tenant_id']]);}
         else $pdo->prepare('INSERT INTO integration_events(id,tenant_id,connection_id,external_event_id,event_type,result,message) VALUES(?,?,?,?,?,?,?)')->execute([new_id('evt'),$connection['tenant_id'],$connectionId,$eventId,$eventType,'processed','Venda vinculada ao produto autorizado e ao afiliado correspondente.']);
         $pdo->prepare('UPDATE integration_connections SET last_event_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$connectionId]);

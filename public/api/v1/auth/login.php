@@ -6,8 +6,10 @@ $body = api_json_body();
 $email = filter_var(trim((string)($body['email'] ?? '')), FILTER_VALIDATE_EMAIL);
 $password = (string)($body['password'] ?? '');
 $device = trim((string)($body['device_name'] ?? 'Celular'));
+$profile = (string)($body['profile'] ?? 'producer');
 if (!$email || $password === '' || strlen($password) > 4096) api_fail('Informe e-mail e senha válidos.', 422, 'invalid_credentials');
 if (preg_match_all('/./us', $device) > 100) api_fail('O nome do dispositivo deve ter até 100 caracteres.', 422, 'invalid_device_name');
+if(!in_array($profile,['producer','affiliate'],true)) api_fail('Perfil inválido.',422,'invalid_profile');
 $attemptKey = api_login_attempt_key((string)$email);
 if (api_login_is_locked($attemptKey)) {
     header('Retry-After: 900');
@@ -19,5 +21,7 @@ if (!$user) {
     api_fail('E-mail ou senha incorretos.', 401, 'invalid_credentials');
 }
 api_login_clear_failures($attemptKey);
-$token = api_issue_token((string)$user['id'], (string)$user['tenant_id'], $device);
+if(!in_array($profile,app_enabled_profiles($user),true)) api_fail('Este perfil não está habilitado para sua conta.',403,'profile_not_enabled');
+$user['active_profile']=$profile;
+$token = api_issue_token((string)$user['id'], (string)($user['tenant_id']??''), $device,$profile);
 api_json(['data' => ['user' => $user, ...$token], 'meta' => (object)[], 'error' => null], 201);

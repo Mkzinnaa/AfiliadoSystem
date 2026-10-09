@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../modules/affiliates.php';
 require_once __DIR__ . '/../../../modules/campaigns.php';
 api_method('GET');
 api_require_auth();
+api_require_permission('dashboard');
 $affiliates = affiliate_read_all();
 $sales = array_sum(array_map(static fn($a) => (float)$a['sales'], $affiliates));
 $commission = array_sum(array_map(static fn($a) => (float)$a['sales'] * (float)$a['commission'] / 100, $affiliates));

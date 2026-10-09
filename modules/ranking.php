@@ -65,3 +65,13 @@ function affiliate_ranking(string $metric, string $start, string $end, string $g
     usort($result, static fn($a,$b) => $b['ranking_value'] <=> $a['ranking_value'] ?: strcmp((string)$a['name'],(string)$b['name']));
     return $result;
 }
+
+function affiliate_ranking_share_settings(?string $tenantId=null): array
+{
+    $tenantId??=tenant_id();$q=app_db()->prepare("SELECT setting_key,setting_value FROM tenant_settings WHERE tenant_id=? AND setting_key IN ('affiliate_ranking_public','affiliate_ranking_metric')");$q->execute([$tenantId]);$settings=[];foreach($q->fetchAll() as $row)$settings[$row['setting_key']]=$row['setting_value'];$metric=(string)($settings['affiliate_ranking_metric']??'revenue');if(!in_array($metric,['revenue','orders','new_customers','conversion','growth'],true))$metric='revenue';return ['enabled'=>($settings['affiliate_ranking_public']??'0')==='1','metric'=>$metric];
+}
+
+function affiliate_ranking_share_save(bool $enabled,string $metric): void
+{
+    if(!in_array($metric,['revenue','orders','new_customers','conversion','growth'],true))throw new DomainException('Métrica de ranking inválida.');$tenant=tenant_id();$pdo=app_db();$stmt=$pdo->prepare('INSERT INTO tenant_settings(tenant_id,setting_key,setting_value) VALUES(?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)');$stmt->execute([$tenant,'affiliate_ranking_public',$enabled?'1':'0']);$stmt->execute([$tenant,'affiliate_ranking_metric',$metric]);app_audit_record((string)current_user()['id'],$tenant,'ranking.visibility_updated','tenant',$tenant,['enabled'=>$enabled,'metric'=>$metric]);
+}

@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 api_method('GET');
 api_require_auth();
+api_require_permission('affiliates');
 $limit = max(1, min(100, (int)($_GET['limit'] ?? 25)));
 $offset = max(0, min(100000, (int)($_GET['offset'] ?? 0)));
 $status = trim((string)($_GET['status'] ?? ''));

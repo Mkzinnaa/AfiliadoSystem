@@ -14,10 +14,13 @@ if (isset($_GET['logout'])) {
 }
 
 if (current_user() !== null && !empty(current_user()['id'])) {
-    header('Location: dashboard.php');
-    exit;
+    $sessionUser=current_user();$sessionProfiles=app_enabled_profiles($sessionUser);
+    if($sessionProfiles&&in_array((string)($sessionUser['active_profile']??''),$sessionProfiles,true)){
+        header('Location: ' . ($sessionUser['active_profile']==='affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
+        exit;
+    }
+    logout_user();start_app_session();$_SESSION['login_csrf']=bin2hex(random_bytes(32));
 }
-if (current_user() !== null) { logout_user(); start_app_session(); $_SESSION['login_csrf'] = bin2hex(random_bytes(32)); }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals((string)($_SESSION['login_csrf'] ?? ''), (string)($_POST['csrf'] ?? ''))) { http_response_code(403); exit('Sessão expirada. Atualize a página e tente novamente.'); }
@@ -59,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente.';
         } elseif (attempt_login((string)$email, $password)) {
             app_login_clear_failures($attemptKey);
-            header('Location: dashboard.php');
+            header('Location: ' . ((current_user()['active_profile'] ?? 'producer') === 'affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
             exit;
         } else {
             app_login_record_failure($attemptKey);
