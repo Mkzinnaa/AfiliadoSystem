@@ -1,0 +1,105 @@
+/* Shared AFFILIEY type scale: Manrope for hierarchy, DM Sans for reading. */
+:root {
+  --font-display: 'Manrope', 'DM Sans', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --text-page-title: clamp(26px, 2.1vw, 30px);
+  --text-section-title: 18px;
+  --text-card-title: 16px;
+  --text-body: 14px;
+  --text-caption: 12px;
+}
+
+body.app-shell,
+body.access-page,
+body.affiliate-apply-page,
+body.platform-admin-page {
+  font-family: var(--font-body);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+/* Page-level titles share one size and weight across every workspace module. */
+body.app-shell :is(.welcome h1, .head h1, .intro h1, .page-intro h1),
+body.platform-admin-page .page-intro h1,
+body.access-page :is(.form-wrap h2, .auth-card h1, .copy h1),
+body.affiliate-apply-page .card h1 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-page-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.035em !important;
+}
+
+/* Panel and section headings use a shared, clear secondary level. */
+body.app-shell :is(.panel-head h2, .section-heading h2, .panel-heading h2,
+  .modalhead h2, .modal-head h2, .reward-summary h2, .rules-panel h2,
+  .awards-panel h2, .section-title),
+body.platform-admin-page :is(.panel-heading h2, .section-heading h2) {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-section-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+body.app-shell :is(.rule-card h3, .program-card-heading h2, .metric-title),
+body.platform-admin-page .metric-title {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-card-title) !important;
+  line-height: 1.35 !important;
+}
+
+body.app-shell main h1,
+body.platform-admin-page main h1 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-page-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -.035em !important;
+}
+
+body.app-shell main h2,
+body.platform-admin-page main h2 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-section-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+}
+
+body.app-shell main h3,
+body.platform-admin-page main h3 {
+  font-family: var(--font-display) !important;
+  font-size: var(--text-card-title) !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+
+body.app-shell main p:not(.note):not(.hint):not(.footnote):not(.demo-note):not(.crumb):not(.empty):not(.eyebrow),
+body.platform-admin-page main p:not(.note):not(.hint):not(.footnote):not(.empty):not(.eyebrow),
+body.access-page .form-wrap p:not(.hint):not(.terms):not(.foot),
+body.access-page .copy p,
+body.affiliate-apply-page .card > p:not(.privacy):not(.eyebrow) {
+  font-family: var(--font-body) !important;
+  font-size: var(--text-body) !important;
+  line-height: 1.55 !important;
+}
+
+/* Intro and panel descriptions are consistently readable without enlarging metadata. */
+body.app-shell :is(.welcome > div > p, .head > div > p, .intro > div > p,
+  .page-intro > div > p, .panel-head p, .section-heading p, .panel-heading p),
+body.platform-admin-page :is(.page-intro > div > p, .panel-heading p),
+body.access-page :is(.form-wrap .sub, .auth-card .muted),
+body.affiliate-apply-page .card > .sub {
+  font-family: var(--font-body) !important;
+  font-size: var(--text-body) !important;
+  line-height: 1.6 !important;
+}
+
+/* Keep the shared hierarchy comfortable on narrow screens. */
+@media (max-width: 640px) {
+  :root {
+    --text-page-title: 25px;
+    --text-section-title: 17px;
+    --text-card-title: 15px;
+    --text-body: 14px;
+  }
+}
