@@ -165,13 +165,14 @@ function app_profile_switcher(): string
     start_app_session();
     if (empty($_SESSION['profile_switch_csrf'])) $_SESSION['profile_switch_csrf'] = bin2hex(random_bytes(32));
     $active = (string)($user['active_profile'] ?? 'producer');
-    $label = $active === 'affiliate' ? 'Afiliado' : 'Produtor';
+    // Keep the historical database key; the user-facing environment is Aluno.
+    $label = $active === 'affiliate' ? 'Aluno' : 'Produtor';
     $html = '<details class="profile-switcher"><summary>Ambiente: <strong>' . $label . '</strong></summary><div class="profile-switcher-menu">';
-    foreach (['producer'=>'Painel do produtor','affiliate'=>'Painel do afiliado'] as $profile=>$text) {
+    foreach (['producer'=>'Painel do produtor','affiliate'=>'Painel do aluno'] as $profile=>$text) {
         if (!in_array($profile,$profiles,true)) continue;
         $html .= '<form method="post" action="profile-switch.php"><input type="hidden" name="csrf" value="' . htmlspecialchars((string)$_SESSION['profile_switch_csrf'],ENT_QUOTES,'UTF-8') . '"><input type="hidden" name="profile" value="' . $profile . '"><button type="submit"' . ($active===$profile?' aria-current="true"':'') . '>' . $text . '</button></form>';
     }
-    if(!in_array('affiliate',$profiles,true))$html.='<a class="profile-switcher-action" href="affiliate-access.php">Tenho convite de afiliado</a>';
+    if(!in_array('affiliate',$profiles,true))$html.='<a class="profile-switcher-action" href="affiliate-access.php">Entrar como ALUNO · Tenho um convite</a>';
     if(!in_array('producer',$profiles,true))$html.='<a class="profile-switcher-action" href="workspace-create.php">Criar meu espaço de produtor</a>';
     return $html . '</div></details>';
 }

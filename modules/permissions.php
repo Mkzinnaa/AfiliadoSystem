@@ -154,7 +154,7 @@ function app_workspace_navigation(): string
 {
     $profileSwitch = function_exists('app_profile_switcher') ? app_profile_switcher() : '';
     if ((current_user()['active_profile'] ?? 'producer') === 'affiliate') {
-        $views = ['dashboard'=>'Meu painel','products'=>'Produtos afiliados','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
+        $views = ['dashboard'=>'Visão geral','products'=>'Meus produtos','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
         $currentView = (string)($_GET['view'] ?? 'dashboard'); $links='';
         foreach($views as $view=>$label) {
             $class=$currentView===$view?' class="active"':'';
