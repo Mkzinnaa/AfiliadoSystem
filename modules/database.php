@@ -22,7 +22,10 @@ function app_db(): PDO
     ensure_campaign_target_affiliate_column($pdo);
     ensure_sales_customer_hash_column($pdo);
     ensure_product_scoped_integration_schema($pdo);
+    ensure_user_active_profile_column($pdo);
     $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT user_id,'producer',1 FROM memberships");
+    $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT id,'affiliate',1 FROM users");
+    $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT id,'producer',1 FROM users");
     seed_subscription_plans($pdo);
     $existing = $pdo->prepare('SELECT id FROM tenants WHERE id = ?');
     $existing->execute([DEMO_USER['tenant_id']]);
@@ -32,9 +35,10 @@ function app_db(): PDO
             $slug = 'novavida-demo';
             $pdo->prepare('INSERT INTO tenants(id,name,slug) VALUES(?,?,?)')->execute([DEMO_USER['tenant_id'], 'NovaVida Store', $slug]);
             $userId = 'user-demo-owner';
-            $pdo->prepare('INSERT INTO users(id,name,email,password_hash) VALUES(?,?,?,?)')->execute([$userId, DEMO_USER['name'], DEMO_USER['email'], password_hash(DEMO_USER['password'], PASSWORD_DEFAULT)]);
+            $pdo->prepare("INSERT INTO users(id,name,email,password_hash,active_profile) VALUES(?,?,?,?,'producer')")->execute([$userId, DEMO_USER['name'], DEMO_USER['email'], password_hash(DEMO_USER['password'], PASSWORD_DEFAULT)]);
             $pdo->prepare('INSERT INTO memberships(tenant_id,user_id,role) VALUES(?,?,?)')->execute([DEMO_USER['tenant_id'], $userId, 'owner']);
             $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1)")->execute([$userId]);
+            $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'affiliate',1)")->execute([$userId]);
             $pdo->commit();
         } catch (Throwable $error) {
             if ($pdo->inTransaction()) $pdo->rollBack();
@@ -56,6 +60,10 @@ function mysql_schema(): array
         "CREATE TABLE IF NOT EXISTS users (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)$suffix",
         "CREATE TABLE IF NOT EXISTS memberships (tenant_id VARCHAR(64) NOT NULL, user_id VARCHAR(64) NOT NULL, role VARCHAR(20) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,user_id), CONSTRAINT memberships_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT memberships_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS user_profiles (user_id VARCHAR(64) NOT NULL, profile_key VARCHAR(24) NOT NULL, enabled TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,profile_key), CONSTRAINT user_profiles_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS community_groups (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, name VARCHAR(160) NOT NULL, description TEXT NOT NULL, cover_url VARCHAR(2048) NOT NULL DEFAULT '', join_policy VARCHAR(16) NOT NULL DEFAULT 'automatic', allow_member_leave TINYINT(1) NOT NULL DEFAULT 1, active TINYINT(1) NOT NULL DEFAULT 1, created_by VARCHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), KEY community_groups_tenant_active_idx(tenant_id,active,created_at), CONSTRAINT community_groups_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT community_groups_creator_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS community_group_members (tenant_id VARCHAR(64) NOT NULL, group_id VARCHAR(64) NOT NULL, user_id VARCHAR(64) NOT NULL, member_role VARCHAR(20) NOT NULL DEFAULT 'student', status VARCHAR(20) NOT NULL DEFAULT 'active', joined_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,group_id,user_id), KEY community_group_members_user_status_idx(user_id,status), CONSTRAINT community_group_member_group_fk FOREIGN KEY(tenant_id,group_id) REFERENCES community_groups(tenant_id,id) ON DELETE CASCADE, CONSTRAINT community_group_member_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS community_resources (id VARCHAR(64) NOT NULL, tenant_id VARCHAR(64) NOT NULL, group_id VARCHAR(64) NOT NULL, resource_type VARCHAR(20) NOT NULL, title VARCHAR(160) NOT NULL, body TEXT NOT NULL, resource_url VARCHAR(2048) NOT NULL DEFAULT '', starts_at DATETIME NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_by VARCHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,id), KEY community_resources_group_active_idx(tenant_id,group_id,active,created_at), CONSTRAINT community_resource_group_fk FOREIGN KEY(tenant_id,group_id) REFERENCES community_groups(tenant_id,id) ON DELETE CASCADE, CONSTRAINT community_resource_creator_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
+        "CREATE TABLE IF NOT EXISTS community_group_invites (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, group_id VARCHAR(64) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NULL, max_uses INT UNSIGNED NULL, uses_count INT UNSIGNED NOT NULL DEFAULT 0, revoked_at DATETIME NULL, created_by VARCHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY community_group_invites_scope_idx(tenant_id,group_id,revoked_at), CONSTRAINT community_group_invite_group_fk FOREIGN KEY(tenant_id,group_id) REFERENCES community_groups(tenant_id,id) ON DELETE CASCADE, CONSTRAINT community_group_invite_creator_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS audit_logs (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NULL, actor_user_id VARCHAR(64) NOT NULL, action_key VARCHAR(64) NOT NULL, subject_type VARCHAR(40) NOT NULL DEFAULT '', subject_id VARCHAR(64) NOT NULL DEFAULT '', details TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY audit_logs_tenant_time_idx(tenant_id,created_at), KEY audit_logs_actor_idx(actor_user_id,created_at), CONSTRAINT audit_logs_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE SET NULL, CONSTRAINT audit_logs_actor_fk FOREIGN KEY(actor_user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS membership_permissions (tenant_id VARCHAR(64) NOT NULL, user_id VARCHAR(64) NOT NULL, module_key VARCHAR(40) NOT NULL, action_key VARCHAR(32) NOT NULL, allowed TINYINT(1) NOT NULL DEFAULT 0, updated_by VARCHAR(64) NOT NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY(tenant_id,user_id,module_key,action_key), KEY membership_permissions_updated_by_idx(updated_by), CONSTRAINT membership_permissions_member_fk FOREIGN KEY(tenant_id,user_id) REFERENCES memberships(tenant_id,user_id) ON DELETE CASCADE, CONSTRAINT membership_permissions_editor_fk FOREIGN KEY(updated_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS invitations (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, email VARCHAR(190) NOT NULL, role VARCHAR(20) NOT NULL, token_hash CHAR(64) NOT NULL UNIQUE, expires_at DATETIME NOT NULL, accepted_at DATETIME NULL, created_by VARCHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY invitations_tenant_email_idx(tenant_id,email), CONSTRAINT invitations_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT invitations_creator_fk FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE)$suffix",
@@ -101,6 +109,14 @@ function ensure_integration_secret_column(PDO $pdo): void
     } elseif (preg_match('/varchar\\((\\d+)\\)/i', (string)($column['Type'] ?? ''), $match) && (int)$match[1] < 512) {
         $pdo->exec("ALTER TABLE integration_connections MODIFY COLUMN secret_ciphertext VARCHAR(512) NOT NULL DEFAULT ''");
     }
+}
+
+function ensure_user_active_profile_column(PDO $pdo): void
+{
+    $column = $pdo->query("SHOW COLUMNS FROM users LIKE 'active_profile'")->fetch(PDO::FETCH_ASSOC);
+    if ($column) return;
+    $pdo->exec("ALTER TABLE users ADD COLUMN active_profile VARCHAR(20) NOT NULL DEFAULT 'affiliate' AFTER password_hash");
+    $pdo->exec("UPDATE users u SET active_profile='producer' WHERE EXISTS(SELECT 1 FROM memberships m WHERE m.user_id=u.id)");
 }
 
 function ensure_affiliate_hotmart_code_column(PDO $pdo): void
@@ -169,9 +185,10 @@ function create_workspace(string $ownerName, string $workspaceName, string $emai
         $base = strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/', '-', iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$workspaceName) ?: $workspaceName), '-'));
         $slug = ($base !== '' ? substr($base,0,40) : 'espaco') . '-' . substr(bin2hex(random_bytes(4)),0,8);
         $pdo->prepare('INSERT INTO tenants(id,name,slug) VALUES(?,?,?)')->execute([$tenantId,$workspaceName,$slug]);
-        $pdo->prepare('INSERT INTO users(id,name,email,password_hash) VALUES(?,?,?,?)')->execute([$userId,$ownerName,$email,password_hash($password,PASSWORD_DEFAULT)]);
+        $pdo->prepare("INSERT INTO users(id,name,email,password_hash,active_profile) VALUES(?,?,?,?,'producer')")->execute([$userId,$ownerName,$email,password_hash($password,PASSWORD_DEFAULT)]);
         $pdo->prepare('INSERT INTO memberships(tenant_id,user_id,role) VALUES(?,?,?)')->execute([$tenantId,$userId,'owner']);
         $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1)")->execute([$userId]);
+        $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'affiliate',1)")->execute([$userId]);
         $trialEnd = (new DateTimeImmutable('+14 days'))->format('Y-m-d');
         $pdo->prepare("INSERT INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)")->execute([$tenantId,$trialEnd]);
         $pdo->commit();
@@ -184,15 +201,33 @@ function create_workspace(string $ownerName, string $workspaceName, string $emai
 
 function authenticate_user(string $email, string $password): ?array
 {
-    $pdo=app_db(); $query=$pdo->prepare('SELECT u.id,u.name,u.email,u.password_hash,m.tenant_id,m.role,t.name AS tenant_name FROM users u LEFT JOIN memberships m ON m.user_id=u.id LEFT JOIN tenants t ON t.id=m.tenant_id WHERE u.email=? ORDER BY m.created_at LIMIT 1');
+    $pdo=app_db(); $query=$pdo->prepare('SELECT u.id,u.name,u.email,u.password_hash,u.active_profile,m.tenant_id,m.role,t.name AS tenant_name FROM users u LEFT JOIN memberships m ON m.user_id=u.id LEFT JOIN tenants t ON t.id=m.tenant_id WHERE u.email=? ORDER BY m.created_at LIMIT 1');
     $query->execute([$email]); $row=$query->fetch();
     if (!$row || !password_verify($password,$row['password_hash'])) return null;
     unset($row['password_hash']);
     $row['profiles']=app_enabled_profiles($row);
     if(!$row['profiles'])return null;
-    $row['active_profile']=in_array('producer',$row['profiles'],true)?'producer':'affiliate';
-    if ($row['tenant_id'] === null) { $row['role']='affiliate'; $row['tenant_name']=''; }
+    if(!in_array((string)$row['active_profile'],$row['profiles'],true)) $row['active_profile']=in_array('producer',$row['profiles'],true)?'producer':'affiliate';
+    if ($row['tenant_id'] === null) { $row['role']='student'; $row['tenant_name']=''; }
     return $row;
+}
+
+function create_user_account(string $name, string $email, string $password): array
+{
+    $name=trim($name); $email=strtolower(trim($email));
+    if($name===''||preg_match_all('/./us',$name)>160) throw new DomainException('Informe um nome válido com até 160 caracteres.');
+    if(!filter_var($email,FILTER_VALIDATE_EMAIL)) throw new DomainException('Informe um e-mail válido.');
+    if(strlen($password)<12) throw new DomainException('A senha deve ter pelo menos 12 caracteres.');
+    $pdo=app_db(); $userId=new_id('usr'); $pdo->beginTransaction();
+    try {
+        $exists=$pdo->prepare('SELECT 1 FROM users WHERE email=?'); $exists->execute([$email]);
+        if($exists->fetchColumn()) throw new DomainException('Este e-mail já possui conta. Entre com suas credenciais.');
+        $pdo->prepare("INSERT INTO users(id,name,email,password_hash,active_profile) VALUES(?,?,?,?, 'affiliate')")->execute([$userId,$name,$email,password_hash($password,PASSWORD_DEFAULT)]);
+        $profiles=$pdo->prepare('INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,?,1)');
+        $profiles->execute([$userId,'affiliate']); $profiles->execute([$userId,'producer']);
+        $pdo->commit();
+        return ['id'=>$userId,'name'=>$name,'email'=>$email,'tenant_id'=>null,'tenant_name'=>'','role'=>'student','profiles'=>['affiliate','producer'],'active_profile'=>'affiliate'];
+    } catch(Throwable $error) { if($pdo->inTransaction())$pdo->rollBack(); throw $error; }
 }
 
 function create_workspace_for_existing_user(string $userId,string $workspaceName): array
@@ -203,7 +238,7 @@ function create_workspace_for_existing_user(string $userId,string $workspaceName
         $userQuery=$pdo->prepare('SELECT id,name,email FROM users WHERE id=? FOR UPDATE');$userQuery->execute([$userId]);$user=$userQuery->fetch();if(!$user)throw new DomainException('Sua conta não foi encontrada.');
         $membership=$pdo->prepare('SELECT 1 FROM memberships WHERE user_id=? LIMIT 1');$membership->execute([$userId]);if($membership->fetchColumn())throw new DomainException('Esta conta já possui um espaço de produtor.');
         $tenantId=new_id('org');$base=strtolower(trim(preg_replace('/[^a-zA-Z0-9]+/','-',iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$workspaceName)?:$workspaceName),'-'));$slug=($base!==''?substr($base,0,40):'espaco').'-'.substr(bin2hex(random_bytes(4)),0,8);
-        $pdo->prepare('INSERT INTO tenants(id,name,slug) VALUES(?,?,?)')->execute([$tenantId,$workspaceName,$slug]);$pdo->prepare("INSERT INTO memberships(tenant_id,user_id,role) VALUES(?,?,'owner')")->execute([$tenantId,$userId]);$pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);$trial=(new DateTimeImmutable('+14 days'))->format('Y-m-d');$pdo->prepare("INSERT INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)")->execute([$tenantId,$trial]);app_audit_record($userId,$tenantId,'workspace.created','tenant',$tenantId,['name'=>$workspaceName]);$pdo->commit();
+        $pdo->prepare('INSERT INTO tenants(id,name,slug) VALUES(?,?,?)')->execute([$tenantId,$workspaceName,$slug]);$pdo->prepare("INSERT INTO memberships(tenant_id,user_id,role) VALUES(?,?,'owner')")->execute([$tenantId,$userId]);$pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);$pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'affiliate',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);$pdo->prepare("UPDATE users SET active_profile='producer' WHERE id=?")->execute([$userId]);$trial=(new DateTimeImmutable('+14 days'))->format('Y-m-d');$pdo->prepare("INSERT INTO subscriptions(tenant_id,plan_code,status,current_period_end) VALUES(?,'starter','trial',?)")->execute([$tenantId,$trial]);app_audit_record($userId,$tenantId,'workspace.created','tenant',$tenantId,['name'=>$workspaceName]);$pdo->commit();
         return ['id'=>$userId,'name'=>$user['name'],'email'=>$user['email'],'tenant_id'=>$tenantId,'tenant_name'=>$workspaceName,'role'=>'owner','profiles'=>array_values(array_unique([...app_user_profiles($userId),'producer'])),'active_profile'=>'producer'];
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
@@ -255,11 +290,13 @@ function accept_affiliate_access_invite(string $token,string $name,string $passw
         }
         $pdo->prepare("INSERT INTO affiliate_account_links(tenant_id,affiliate_id,user_id,status) VALUES(?,?,?,'active')")->execute([$invite['tenant_id'],$invite['affiliate_id'],$userId]);
         $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'affiliate',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);
+        $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);
+        $pdo->prepare("UPDATE users SET active_profile='affiliate' WHERE id=?")->execute([$userId]);
         app_audit_record($userId,(string)$invite['tenant_id'],'affiliate.access_linked','affiliate',(string)$invite['affiliate_id']);
         $pdo->prepare('UPDATE affiliate_access_invites SET accepted_at=UTC_TIMESTAMP() WHERE id=?')->execute([$invite['id']]);
         $pdo->commit();
         $membership=$pdo->prepare('SELECT m.tenant_id,m.role,t.name AS tenant_name FROM memberships m JOIN tenants t ON t.id=m.tenant_id WHERE m.user_id=? ORDER BY m.created_at LIMIT 1');$membership->execute([$userId]);$producer=$membership->fetch()?:null;
-        return ['id'=>$userId,'name'=>$userName,'email'=>$invite['email'],'tenant_id'=>$producer['tenant_id']??null,'tenant_name'=>$producer['tenant_name']??'','role'=>$producer['role']??'affiliate','profiles'=>array_values(array_unique([...app_user_profiles($userId),'affiliate'])),'active_profile'=>'affiliate'];
+        return ['id'=>$userId,'name'=>$userName,'email'=>$invite['email'],'tenant_id'=>$producer['tenant_id']??null,'tenant_name'=>$producer['tenant_name']??'','role'=>$producer['role']??'student','profiles'=>array_values(array_unique([...app_user_profiles($userId),'affiliate','producer'])),'active_profile'=>'affiliate'];
     } catch(Throwable $error) { if($pdo->inTransaction())$pdo->rollBack(); throw $error; }
 }
 
@@ -281,10 +318,12 @@ function accept_team_invitation(string $token, string $name, string $password): 
         }
         $pdo->prepare('INSERT INTO memberships(tenant_id,user_id,role) VALUES(?,?,?)')->execute([$invite['tenant_id'],$userId,$invite['role']]);
         $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'producer',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);
+        $pdo->prepare("INSERT INTO user_profiles(user_id,profile_key,enabled) VALUES(?,'affiliate',1) ON DUPLICATE KEY UPDATE enabled=1")->execute([$userId]);
+        $pdo->prepare("UPDATE users SET active_profile='producer' WHERE id=?")->execute([$userId]);
         $pdo->prepare('UPDATE invitations SET accepted_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$invite['id']]);
         $tenant=$pdo->prepare('SELECT name FROM tenants WHERE id=?'); $tenant->execute([$invite['tenant_id']]); $tenantName=(string)$tenant->fetchColumn();
         $pdo->commit();
-        return ['id'=>$userId,'name'=>$userName,'email'=>$invite['email'],'tenant_id'=>$invite['tenant_id'],'tenant_name'=>$tenantName,'role'=>$invite['role']];
+        return ['id'=>$userId,'name'=>$userName,'email'=>$invite['email'],'tenant_id'=>$invite['tenant_id'],'tenant_name'=>$tenantName,'role'=>$invite['role'],'profiles'=>array_values(array_unique([...app_user_profiles($userId),'producer','affiliate'])),'active_profile'=>'producer'];
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $error;

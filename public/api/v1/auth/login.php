@@ -22,6 +22,7 @@ if (!$user) {
 }
 api_login_clear_failures($attemptKey);
 if(!in_array($profile,app_enabled_profiles($user),true)) api_fail('Este perfil não está habilitado para sua conta.',403,'profile_not_enabled');
+if($profile==='producer'&&empty($user['tenant_id'])) api_fail('Configure seu espaço de produtor antes de autenticar a API neste ambiente.',403,'producer_workspace_required');
 $user['active_profile']=$profile;
 $token = api_issue_token((string)$user['id'], (string)($user['tenant_id']??''), $device,$profile);
 api_json(['data' => ['user' => $user, ...$token], 'meta' => (object)[], 'error' => null], 201);

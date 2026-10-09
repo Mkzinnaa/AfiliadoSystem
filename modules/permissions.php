@@ -14,6 +14,7 @@ function app_permission_catalog(): array
         'announcements' => ['label' => 'Comunicados', 'actions' => ['view' => 'Visualizar', 'create' => 'Criar e enviar']],
         'integrations' => ['label' => 'Integrações', 'actions' => ['view' => 'Visualizar', 'create' => 'Conectar', 'edit' => 'Alterar e pausar']],
         'team' => ['label' => 'Equipe', 'actions' => ['view' => 'Visualizar', 'invite' => 'Convidar membros']],
+        'communities' => ['label' => 'Grupos e comunidades', 'actions' => ['view' => 'Visualizar', 'create' => 'Criar grupos', 'edit' => 'Gerenciar grupos e participantes']],
         'materials' => ['label' => 'Materiais', 'actions' => ['view' => 'Visualizar', 'create' => 'Publicar', 'edit' => 'Editar e arquivar']],
         'events' => ['label' => 'Reuniões e eventos', 'actions' => ['view' => 'Visualizar', 'create' => 'Agendar', 'edit' => 'Editar e cancelar']],
         'support' => ['label' => 'Suporte', 'actions' => ['view' => 'Visualizar conversas', 'reply' => 'Responder', 'close' => 'Encerrar']],
@@ -37,6 +38,9 @@ function app_permission_module_for_request(): ?string
         'materials.php' => 'materials',
         'events.php' => 'events',
         'support.php' => 'support',
+        'communities.php' => 'communities',
+        'community-content.php' => 'communities',
+        'community-settings.php' => 'communities',
         default => null,
     };
 }
@@ -47,6 +51,7 @@ function app_permission_action_for_request(?string $module = null): string
     if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') return 'view';
     $action = strtolower(trim((string)($_POST['action'] ?? '')));
     if ($module === 'team') return 'invite';
+    if ($module === 'communities') return $action === 'create_group' ? 'create' : 'edit';
     if ($module === 'support') return in_array($action,['close','resolve'],true)?'close':'reply';
     if (in_array($module,['materials','events'],true)) return in_array($action,['toggle','delete','cancel'],true)?'edit':(trim((string)($_POST['id']??''))===''?'create':'edit');
     if ($module === 'affiliates') {
@@ -74,14 +79,14 @@ function app_permission_action_for_request(?string $module = null): string
 function app_permission_default(string $role, string $module, string $action): bool
 {
     if ($role === 'owner' || $role === 'admin') return true;
-    $views = ['dashboard', 'affiliates', 'affiliate_groups', 'sales', 'campaigns', 'ranking', 'rewards', 'announcements','materials','events','support'];
+    $views = ['dashboard', 'affiliates', 'affiliate_groups', 'sales', 'campaigns', 'ranking', 'rewards', 'announcements','materials','events','support','communities'];
     if ($role === 'viewer') return $action === 'view' && in_array($module, $views, true);
     if ($role === 'analyst') return $action === 'view' && in_array($module, ['dashboard','sales','campaigns','ranking','rewards'], true);
     if ($role === 'support') return ($action === 'view' && in_array($module, ['dashboard','affiliates','announcements','support'], true)) || ($module==='support' && $action==='reply');
     if ($role === 'manager') {
         if ($action === 'view') return in_array($module, [...$views, 'team'], true);
         return match ($module) {
-            'affiliates', 'affiliate_groups', 'campaigns', 'rewards','materials','events' => in_array($action, ['create', 'edit'], true),
+            'affiliates', 'affiliate_groups', 'campaigns', 'rewards','materials','events','communities' => in_array($action, ['create', 'edit'], true),
             'announcements' => $action === 'create',
             'support' => in_array($action,['reply','close'],true),
             default => false,
@@ -154,17 +159,19 @@ function app_workspace_navigation(): string
 {
     $profileSwitch = function_exists('app_profile_switcher') ? app_profile_switcher() : '';
     if ((current_user()['active_profile'] ?? 'producer') === 'affiliate') {
-        $views = ['dashboard'=>'Visão geral','products'=>'Meus produtos','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
+        $views = ['dashboard'=>'Visão geral','groups'=>'Meus grupos','products'=>'Meus produtos','sales'=>'Minhas vendas','commissions'=>'Minhas comissões','goals'=>'Minhas metas','ranking'=>'Ranking','achievements'=>'Conquistas','materials'=>'Materiais','events'=>'Reuniões','announcements'=>'Comunicados','messages'=>'Suporte'];
         $currentView = (string)($_GET['view'] ?? 'dashboard'); $links='';
         foreach($views as $view=>$label) {
             $class=$currentView===$view?' class="active"':'';
-            $links.='<a'.$class.' href="affiliate-dashboard.php?view='.$view.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</a>';
+            $links.='<a'.$class.' href="student-dashboard.php?view='.$view.'">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</a>';
         }
+        $links.='<a href="student-content.php">Conteúdos dos grupos</a>';
         return $profileSwitch.$links;
     }
     $items = [
         'dashboard' => ['dashboard.php', 'Visão geral'],
         'affiliates' => ['affiliates.php', 'Afiliados'],
+        'communities' => ['communities.php', 'Meus grupos'],
         'sales' => ['sales.php', 'Vendas'],
         'campaigns' => ['campaigns.php', 'Metas'],
         'ranking' => ['ranking.php', 'Ranking'],
@@ -185,5 +192,6 @@ function app_workspace_navigation(): string
         $class = $current === $module ? ' class="' . $activeClass . '"' : '';
         $links .= '<a' . $class . ' href="' . $href . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
     }
+    if(app_user_can('communities','view'))$links.='<a href="community-content.php">Conteúdos dos grupos</a><a href="community-settings.php">Configurar grupos</a>';
     return $profileSwitch . $links;
 }

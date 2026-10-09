@@ -25,6 +25,14 @@ function app_mail_settings(): array
 function app_public_url(): string
 {
     $settings = app_mail_settings();
+    $requestHost = strtolower((string)parse_url('http://' . ($_SERVER['HTTP_HOST'] ?? ''), PHP_URL_HOST));
+    if (in_array($requestHost, ['localhost','127.0.0.1','::1','[::1]'], true)) {
+        $localHost=(string)($_SERVER['HTTP_HOST']??'localhost');
+        if(preg_match('/\A(?:localhost|127\.0\.0\.1|\[::1\]|::1)(?::[0-9]{1,5})?\z/i',$localHost)){
+            $localScheme=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')?'https':'http';
+            return $localScheme.'://'.$localHost;
+        }
+    }
     $configured = trim((string)(getenv('VERTICE_APP_URL') ?: ($settings['app_url'] ?? '')));
     if ($configured !== '') {
         $parts = parse_url($configured);

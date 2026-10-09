@@ -16,7 +16,7 @@ if (isset($_GET['logout'])) {
 if (current_user() !== null && !empty(current_user()['id'])) {
     $sessionUser=current_user();$sessionProfiles=app_enabled_profiles($sessionUser);
     if($sessionProfiles&&in_array((string)($sessionUser['active_profile']??''),$sessionProfiles,true)){
-        header('Location: ' . ($sessionUser['active_profile']==='affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
+        header('Location: ' . ($sessionUser['active_profile']==='affiliate' ? 'student-dashboard.php' : (empty($sessionUser['tenant_id']) ? 'workspace-create.php' : 'dashboard.php')));
         exit;
     }
     logout_user();start_app_session();$_SESSION['login_csrf']=bin2hex(random_bytes(32));
@@ -62,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Muitas tentativas de acesso. Aguarde 15 minutos e tente novamente.';
         } elseif (attempt_login((string)$email, $password)) {
             app_login_clear_failures($attemptKey);
-            header('Location: ' . ((current_user()['active_profile'] ?? 'producer') === 'affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
+            if(!empty($_SESSION['pending_group_invite'])) { header('Location: group-join.php'); exit; }
+            header('Location: ' . ((current_user()['active_profile'] ?? 'affiliate') === 'affiliate' ? 'student-dashboard.php' : (empty(current_user()['tenant_id']) ? 'workspace-create.php' : 'dashboard.php')));
             exit;
         } else {
             app_login_record_failure($attemptKey);

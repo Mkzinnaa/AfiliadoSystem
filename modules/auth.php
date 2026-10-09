@@ -91,14 +91,18 @@ function require_login(): void
     }
     $profiles = app_enabled_profiles($user);
     $script = strtolower(basename((string)($_SERVER['SCRIPT_NAME'] ?? '')));
-    $requiredProfile = str_starts_with($script, 'affiliate-') && $script !== 'affiliate-apply.php' ? 'affiliate' : (app_permission_module_for_request() !== null ? 'producer' : null);
+    $requiredProfile = (str_starts_with($script, 'affiliate-') && $script !== 'affiliate-apply.php') || $script === 'student-dashboard.php' ? 'affiliate' : (app_permission_module_for_request() !== null ? 'producer' : null);
     if ($requiredProfile !== null && !in_array($requiredProfile, $profiles, true)) {
         http_response_code(403);
         exit('Este ambiente não está habilitado para sua conta.');
     }
-    $active = (string)($user['active_profile'] ?? 'producer');
+    $active = (string)($user['active_profile'] ?? 'affiliate');
     if ($requiredProfile !== null && $active !== $requiredProfile) {
         header('Location: ' . ($active === 'affiliate' ? 'affiliate-dashboard.php' : 'dashboard.php'));
+        exit;
+    }
+    if ($requiredProfile === 'producer' && empty($user['tenant_id'])) {
+        header('Location: workspace-create.php');
         exit;
     }
     $module = app_permission_module_for_request();
@@ -124,9 +128,13 @@ function app_refresh_session_membership(array $user): array
             $_SESSION['affiliate_user']['tenant_name'] = (string)$membership['tenant_name'];
         } else {
             unset($_SESSION['affiliate_user']['tenant_id'],$_SESSION['affiliate_user']['tenant_name']);
-            $_SESSION['affiliate_user']['role'] = 'affiliate';
+            $_SESSION['affiliate_user']['role'] = 'student';
         }
     }
+    $savedProfile=app_db()->prepare('SELECT active_profile FROM users WHERE id=? LIMIT 1');
+    $savedProfile->execute([(string)$user['id']]);
+    $persisted=(string)($savedProfile->fetchColumn()?:'affiliate');
+    $_SESSION['affiliate_user']['active_profile']=$persisted;
     $user = $_SESSION['affiliate_user'];
     $profiles = app_enabled_profiles($user);
     if (!in_array((string)($user['active_profile'] ?? ''),$profiles,true) && $profiles) {
@@ -142,14 +150,12 @@ function app_enabled_profiles(array $user): array
     if (!empty($user['id'])) {
         $userId=(string)$user['id'];
         $stored=app_user_profiles($userId);
-        if (in_array('producer',$stored,true) && !empty($user['tenant_id'])) {
-            $membership=app_db()->prepare('SELECT 1 FROM memberships WHERE tenant_id=? AND user_id=? LIMIT 1');
-            $membership->execute([(string)$user['tenant_id'],$userId]);
-            if($membership->fetchColumn())$profiles[]='producer';
-        }
+        // A profile enables an environment; tenant/group relationships below
+        // continue to authorize access to actual data and producer features.
+        if (in_array('producer',$stored,true)) $profiles[]='producer';
         if(in_array('affiliate',$stored,true)){
             $linked=app_db()->prepare("SELECT 1 FROM affiliate_account_links l JOIN affiliates a ON a.tenant_id=l.tenant_id AND a.id=l.affiliate_id WHERE l.user_id=? AND l.status='active' AND a.status='active' LIMIT 1");
-            $linked->execute([$userId]);if($linked->fetchColumn())$profiles[]='affiliate';
+            $linked->execute([$userId]);if($linked->fetchColumn() || in_array('producer',$stored,true))$profiles[]='affiliate';
         }
         if (isset($GLOBALS['VERTICE_API_USER']['profile'])) $profiles[] = (string)$GLOBALS['VERTICE_API_USER']['profile'];
     }
@@ -164,11 +170,11 @@ function app_profile_switcher(): string
     if (!$profiles) return '';
     start_app_session();
     if (empty($_SESSION['profile_switch_csrf'])) $_SESSION['profile_switch_csrf'] = bin2hex(random_bytes(32));
-    $active = (string)($user['active_profile'] ?? 'producer');
+    $active = (string)($user['active_profile'] ?? 'affiliate');
     // Keep the historical database key; the user-facing environment is Aluno.
     $label = $active === 'affiliate' ? 'Aluno' : 'Produtor';
-    $html = '<details class="profile-switcher"><summary>Ambiente: <strong>' . $label . '</strong></summary><div class="profile-switcher-menu">';
-    foreach (['producer'=>'Painel do produtor','affiliate'=>'Painel do aluno'] as $profile=>$text) {
+    $html = '<details class="profile-switcher"><summary>Alternar ambiente: <strong>' . strtoupper($label) . '</strong></summary><div class="profile-switcher-menu">';
+    foreach (['producer'=>'Entrar como Produtor','affiliate'=>'Entrar como Aluno'] as $profile=>$text) {
         if (!in_array($profile,$profiles,true)) continue;
         $html .= '<form method="post" action="profile-switch.php"><input type="hidden" name="csrf" value="' . htmlspecialchars((string)$_SESSION['profile_switch_csrf'],ENT_QUOTES,'UTF-8') . '"><input type="hidden" name="profile" value="' . $profile . '"><button type="submit"' . ($active===$profile?' aria-current="true"':'') . '>' . $text . '</button></form>';
     }
