@@ -23,6 +23,8 @@ function app_db(): PDO
     ensure_sales_customer_hash_column($pdo);
     ensure_product_scoped_integration_schema($pdo);
     ensure_user_active_profile_column($pdo);
+    ensure_platform_admin_security_schema($pdo);
+    ensure_user_account_status_column($pdo);
     $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT user_id,'producer',1 FROM memberships");
     $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT id,'affiliate',1 FROM users");
     $pdo->exec("INSERT IGNORE INTO user_profiles(user_id,profile_key,enabled) SELECT id,'producer',1 FROM users");
@@ -89,6 +91,8 @@ function mysql_schema(): array
         "CREATE TABLE IF NOT EXISTS affiliate_support_messages (id VARCHAR(64) NOT NULL PRIMARY KEY, thread_id VARCHAR(64) NOT NULL, sender_user_id VARCHAR(64) NOT NULL, sender_profile VARCHAR(20) NOT NULL, body TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, read_at DATETIME NULL, KEY affiliate_support_messages_idx(thread_id,created_at), CONSTRAINT affiliate_support_message_thread_fk FOREIGN KEY(thread_id) REFERENCES affiliate_support_threads(id) ON DELETE CASCADE, CONSTRAINT affiliate_support_message_user_fk FOREIGN KEY(sender_user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS affiliate_personal_goals (id VARCHAR(64) NOT NULL PRIMARY KEY, user_id VARCHAR(64) NOT NULL, title VARCHAR(120) NOT NULL, metric VARCHAR(24) NOT NULL, target DECIMAL(14,2) NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY affiliate_personal_goals_user_dates_idx(user_id,start_date,end_date), CONSTRAINT affiliate_personal_goals_user_fk FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE)$suffix",
         "CREATE TABLE IF NOT EXISTS platform_admins (id VARCHAR(64) NOT NULL PRIMARY KEY, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, last_login DATETIME NULL)$suffix",
+        "CREATE TABLE IF NOT EXISTS platform_admin_audit (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, admin_id VARCHAR(64) NULL, actor_email VARCHAR(190) NOT NULL DEFAULT '', event_type VARCHAR(80) NOT NULL, result VARCHAR(24) NOT NULL, resource_type VARCHAR(60) NOT NULL DEFAULT '', resource_id VARCHAR(100) NOT NULL DEFAULT '', details LONGTEXT NOT NULL, request_id VARCHAR(64) NOT NULL DEFAULT '', ip_hash CHAR(64) NOT NULL DEFAULT '', user_agent_hash CHAR(64) NOT NULL DEFAULT '', previous_hash CHAR(64) NOT NULL DEFAULT '', event_hash CHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY platform_admin_audit_time_idx(created_at,id), KEY platform_admin_audit_actor_idx(admin_id,created_at), KEY platform_admin_audit_event_idx(event_type,result,created_at))$suffix",
+        "CREATE TABLE IF NOT EXISTS platform_admin_alerts (id VARCHAR(64) NOT NULL PRIMARY KEY, fingerprint CHAR(64) NOT NULL UNIQUE, priority VARCHAR(16) NOT NULL, category VARCHAR(60) NOT NULL, title VARCHAR(180) NOT NULL, reason TEXT NOT NULL, related_user_id VARCHAR(64) NULL, related_event_type VARCHAR(80) NOT NULL DEFAULT '', status VARCHAR(20) NOT NULL DEFAULT 'open', analyst_note TEXT NOT NULL, reviewed_by VARCHAR(64) NULL, reviewed_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, KEY platform_admin_alerts_status_idx(status,priority,created_at), KEY platform_admin_alerts_user_idx(related_user_id,created_at))$suffix",
         "CREATE TABLE IF NOT EXISTS subscription_plans (code VARCHAR(32) NOT NULL PRIMARY KEY, name VARCHAR(80) NOT NULL, monthly_price_cents INT NOT NULL DEFAULT 0, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)$suffix",
         "CREATE TABLE IF NOT EXISTS subscriptions (tenant_id VARCHAR(64) NOT NULL PRIMARY KEY, plan_code VARCHAR(32) NOT NULL, status VARCHAR(20) NOT NULL, started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, current_period_end DATE NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, notes VARCHAR(500) NOT NULL DEFAULT '', CONSTRAINT subscriptions_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT subscriptions_plan_fk FOREIGN KEY(plan_code) REFERENCES subscription_plans(code))$suffix",
         "CREATE TABLE IF NOT EXISTS subscription_events (id VARCHAR(64) NOT NULL PRIMARY KEY, tenant_id VARCHAR(64) NOT NULL, admin_id VARCHAR(64) NOT NULL, event_type VARCHAR(50) NOT NULL, details TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, KEY subscription_events_tenant_idx(tenant_id,created_at), CONSTRAINT subscription_events_tenant_fk FOREIGN KEY(tenant_id) REFERENCES tenants(id) ON DELETE CASCADE, CONSTRAINT subscription_events_admin_fk FOREIGN KEY(admin_id) REFERENCES platform_admins(id) ON DELETE CASCADE)$suffix",
@@ -109,6 +113,31 @@ function ensure_integration_secret_column(PDO $pdo): void
     } elseif (preg_match('/varchar\\((\\d+)\\)/i', (string)($column['Type'] ?? ''), $match) && (int)$match[1] < 512) {
         $pdo->exec("ALTER TABLE integration_connections MODIFY COLUMN secret_ciphertext VARCHAR(512) NOT NULL DEFAULT ''");
     }
+}
+
+function ensure_platform_admin_security_schema(PDO $pdo): void
+{
+    $columns = [
+        'role_key' => "ALTER TABLE platform_admins ADD COLUMN role_key VARCHAR(32) NOT NULL DEFAULT 'admin' AFTER password_hash",
+        'enabled' => 'ALTER TABLE platform_admins ADD COLUMN enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER role_key',
+        'mfa_secret_ciphertext' => "ALTER TABLE platform_admins ADD COLUMN mfa_secret_ciphertext VARCHAR(512) NOT NULL DEFAULT '' AFTER enabled",
+        'mfa_enabled_at' => 'ALTER TABLE platform_admins ADD COLUMN mfa_enabled_at DATETIME NULL AFTER mfa_secret_ciphertext',
+        'last_activity_at' => 'ALTER TABLE platform_admins ADD COLUMN last_activity_at DATETIME NULL AFTER last_login',
+    ];
+    foreach ($columns as $name => $sql) {
+        $q = $pdo->query('SHOW COLUMNS FROM platform_admins LIKE ' . $pdo->quote($name));
+        if (!$q->fetch()) $pdo->exec($sql);
+    }
+    if (!(int)$pdo->query("SELECT COUNT(*) FROM platform_admins WHERE role_key='super_admin'")->fetchColumn()) {
+        $first = $pdo->query('SELECT id FROM platform_admins ORDER BY created_at ASC,id ASC LIMIT 1')->fetchColumn();
+        if (is_string($first) && $first !== '') $pdo->prepare("UPDATE platform_admins SET role_key='super_admin' WHERE id=?")->execute([$first]);
+    }
+}
+
+function ensure_user_account_status_column(PDO $pdo): void
+{
+    $q = $pdo->query("SHOW COLUMNS FROM users LIKE 'account_status'");
+    if (!$q->fetch()) $pdo->exec("ALTER TABLE users ADD COLUMN account_status VARCHAR(20) NOT NULL DEFAULT 'active' AFTER password_hash");
 }
 
 function ensure_user_active_profile_column(PDO $pdo): void
@@ -201,9 +230,9 @@ function create_workspace(string $ownerName, string $workspaceName, string $emai
 
 function authenticate_user(string $email, string $password): ?array
 {
-    $pdo=app_db(); $query=$pdo->prepare('SELECT u.id,u.name,u.email,u.password_hash,u.active_profile,m.tenant_id,m.role,t.name AS tenant_name FROM users u LEFT JOIN memberships m ON m.user_id=u.id LEFT JOIN tenants t ON t.id=m.tenant_id WHERE u.email=? ORDER BY m.created_at LIMIT 1');
+    $pdo=app_db(); $query=$pdo->prepare('SELECT u.id,u.name,u.email,u.password_hash,u.active_profile,u.account_status,m.tenant_id,m.role,t.name AS tenant_name FROM users u LEFT JOIN memberships m ON m.user_id=u.id LEFT JOIN tenants t ON t.id=m.tenant_id WHERE u.email=? ORDER BY m.created_at LIMIT 1');
     $query->execute([$email]); $row=$query->fetch();
-    if (!$row || !password_verify($password,$row['password_hash'])) return null;
+    if (!$row || !password_verify($password,$row['password_hash']) || ($row['account_status'] ?? 'active') !== 'active') return null;
     unset($row['password_hash']);
     $row['profiles']=app_enabled_profiles($row);
     if(!$row['profiles'])return null;

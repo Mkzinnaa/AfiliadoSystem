@@ -86,6 +86,16 @@ function require_login(): void
         header('Location: login.php');
         exit;
     }
+    $statusQuery = app_db()->prepare('SELECT account_status FROM users WHERE id=?');
+    $statusQuery->execute([(string)$user['id']]);
+    if ($statusQuery->fetchColumn() !== 'active') {
+        if (!isset($GLOBALS['VERTICE_API_USER'])) {
+            unset($_SESSION['affiliate_user']);
+            session_regenerate_id(true);
+        }
+        http_response_code(403);
+        exit('Esta conta está suspensa ou bloqueada. Entre em contato com o suporte.');
+    }
     if (!isset($GLOBALS['VERTICE_API_USER'])) {
         $user = app_refresh_session_membership($user);
     }

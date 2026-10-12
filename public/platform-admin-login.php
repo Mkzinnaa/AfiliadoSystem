@@ -1,17 +1,17 @@
 <?php
 declare(strict_types=1);
-require_once __DIR__ . '/../modules/auth.php';
+require_once __DIR__ . '/../modules/platform-admin-security.php';
 start_app_session();$pdo=app_db();
 if((int)$pdo->query('SELECT COUNT(*) FROM platform_admins')->fetchColumn()===0){header('Location: platform-admin-setup.php');exit;}
-if(!empty($_SESSION['platform_admin_id'])){header('Location: platform-admin.php');exit;}
+if(!empty($_SESSION['platform_admin_id'])){header('Location: platform-admin-master.php');exit;}
 if(empty($_SESSION['platform_login_csrf']))$_SESSION['platform_login_csrf']=bin2hex(random_bytes(32));$error='';
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!hash_equals((string)$_SESSION['platform_login_csrf'],(string)($_POST['csrf']??''))){http_response_code(403);exit('Sessão expirada. Atualize a página.');}
     $email=trim((string)($_POST['email']??''));$attemptKey=app_login_attempt_key('platform-admin',$email);
-    if(app_login_is_locked($attemptKey)){header('Retry-After: 900');$error='Muitas tentativas. Aguarde 15 minutos e tente novamente.';}
-    else{$password=(string)($_POST['password']??'');$stmt=$pdo->prepare('SELECT id,name,email,password_hash FROM platform_admins WHERE email=?');$stmt->execute([$email]);$admin=$stmt->fetch();
-        if($admin&&password_verify($password,$admin['password_hash'])){session_regenerate_id(true);$_SESSION['platform_admin_id']=$admin['id'];app_login_clear_failures($attemptKey);$pdo->prepare('UPDATE platform_admins SET last_login=CURRENT_TIMESTAMP WHERE id=?')->execute([$admin['id']]);header('Location: platform-admin.php');exit;}
-        app_login_record_failure($attemptKey);$error='E-mail ou senha incorretos.';
+    if(app_login_is_locked($attemptKey)){header('Retry-After: 900');try{platform_admin_audit('admin.auth.rate_limited','denied','admin-login','',['email'=>$email],null,$email);}catch(Throwable $e){}$error='Muitas tentativas. Aguarde 15 minutos e tente novamente.';}
+    else{$password=(string)($_POST['password']??'');$stmt=$pdo->prepare("SELECT id,name,email,password_hash,role_key,enabled,mfa_enabled_at FROM platform_admins WHERE email=?");$stmt->execute([$email]);$admin=$stmt->fetch();
+        if($admin&&$admin['role_key']==='super_admin'&&(int)$admin['enabled']===1&&password_verify($password,$admin['password_hash'])){session_regenerate_id(true);app_login_clear_failures($attemptKey);$_SESSION['platform_mfa_challenge_admin_id']=$admin['id'];$_SESSION['platform_mfa_challenge_at']=time();$_SESSION['platform_mfa_challenge_email']=$admin['email'];header('Location: platform-admin-mfa.php');exit;}
+        app_login_record_failure($attemptKey);try{platform_admin_audit('admin.auth.password_failed','denied','admin-login','',['email'=>$email],null,$email);}catch(Throwable $e){}$error='E-mail ou senha incorretos.';
     }
 }
 function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
@@ -21,7 +21,7 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Entrar no painel SaaS — AFFILIEY</title>
+  <title>Entrar na administração master — AFFILIEY</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,20 +37,20 @@ function ple($v):string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
       <div class="copy">
         <div class="eyebrow">ADMINISTRAÇÃO DO SAAS</div>
         <h1>Uma visão completa<br>da plataforma.</h1>
-        <p>Gerencie espaços, planos e assinaturas em uma área administrativa protegida.</p>
+        <p>Acesse a Central Master com senha e autenticação multifator.</p>
       </div>
       <div class="quote">Acesso exclusivo para a equipe responsável pela plataforma.</div>
     </section>
     <section class="form-side">
       <div class="form-wrap">
-        <h2>Entrar no painel SaaS</h2>
+        <h2>Entrar na administração master</h2>
         <p class="sub">Use suas credenciais administrativas.</p>
         <?php if($error): ?><div class="message error" role="alert"><?= ple($error) ?></div><?php endif; ?>
         <form method="post" autocomplete="on">
           <input type="hidden" name="csrf" value="<?= ple($_SESSION['platform_login_csrf']) ?>">
           <div class="field"><label for="email">E-mail administrativo</label><input id="email" type="email" name="email" autocomplete="username" required autofocus></div>
           <div class="field"><label for="password">Senha</label><div class="password-control"><input id="password" type="password" name="password" autocomplete="current-password" required><button class="toggle-password" type="button" data-password-toggle aria-label="Mostrar senha" aria-pressed="false"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a15 15 0 0 1-3.2 4.1M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7c1.5 0 2.8-.4 4-1"/></svg></button></div></div>
-          <button class="submit" type="submit">Acessar painel SaaS →</button>
+          <button class="submit" type="submit">Acessar painel master →</button>
         </form>
         <div class="switch"><a href="login.php" class="link">← Voltar ao acesso do produtor</a></div>
       </div>

@@ -144,3 +144,22 @@ Na tela Afiliados, configure a página HTTPS de vendas do produto. Os links de d
 ## Notas de produção
 
 O sistema ainda é um MVP. Antes de abrir cadastro para clientes, revise termos e privacidade, limites de cadastro, monitoramento, backups e cobrança SaaS. Convites de equipe e recuperação de senha enviam e-mails quando o SMTP está configurado. Não compartilhe credenciais ou segredos em mensagens, commits ou arquivos públicos.
+# Central Administrativa Master
+
+O painel master fica disponível em `platform-admin-master.php` e pode ser aberto na raiz do subdomínio `admin.affiliey.com` quando o subdomínio estiver configurado para servir a pasta `public/` (ou quando a regra raiz do `.htaccess` encaminhar para `public/`). O código não cria DNS, certificado HTTPS nem altera o DocumentRoot do cPanel.
+
+## Ativação inicial do Super Admin
+
+1. Configure `VERTICE_SETUP_KEY` com uma chave aleatória privada de pelo menos 32 caracteres no ambiente do servidor (ou no armazenamento privado `.runtime/app-data/setup-key.php`).
+2. Abra `https://admin.affiliey.com/platform-admin-setup.php` uma única vez e crie a conta do proprietário. A identidade é atribuída pela tabela `platform_admins` com papel `super_admin`, não por comparação de e-mail no código.
+3. Na mesma sessão, registre a chave exibida em um aplicativo TOTP e confirme o código. A chave TOTP é criptografada com a chave privada de integrações guardada em `.runtime/app-data/webhook.key`; mantenha backup seguro desse arquivo.
+4. Remova/limpe `VERTICE_SETUP_KEY` depois da criação. A página de setup fica bloqueada assim que houver um administrador cadastrado.
+5. Configure o DNS `admin` para a hospedagem, ative HTTPS no cPanel e aponte o DocumentRoot do subdomínio para `public/`. Se compartilhar o DocumentRoot com o site principal, confirme que o `.htaccess` raiz e `public/.htaccess` estão ativos.
+
+As atualizações do esquema master são aditivas e idempotentes no bootstrap MySQL. A sessão administrativa expira após 20 minutos sem atividade e todas as páginas administrativas exigem MFA validado.
+
+## Escopo de dados e auditoria
+
+O painel consulta produtores, afiliados, produtos, vendas, comissões, contas e logs já existentes. A trilha master usa hash HMAC encadeado e não oferece edição/exclusão na aplicação; para resistência a um operador com acesso direto ao MySQL, configure privilégios SQL de somente inserção para essa tabela ou exporte periodicamente a trilha para armazenamento externo imutável.
+
+O projeto atual ainda não possui fluxo/tabela de documentos enviados e armazenamento privado; a área correspondente informa essa limitação e não inventa aprovações. Alertas são regras objetivas de revisão e não suspendem usuários automaticamente. Os logs de negócio existentes são exibidos conforme os eventos já emitidos pelos módulos e não representam cobertura retroativa de operações que nunca foram auditadas.

@@ -6,5 +6,8 @@ Options -Indexes
   Require all denied
 </FilesMatch>
 RewriteEngine On
+RewriteCond %{HTTP_HOST} ^admin\.affiliey\.com$ [NC]
+RewriteRule ^$ public/platform-admin-login.php [L]
+
 RewriteRule ^public/ - [L]
 RewriteRule ^(.*)$ public/$1 [L]
