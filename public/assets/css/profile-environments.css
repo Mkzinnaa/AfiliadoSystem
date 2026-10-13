@@ -38,3 +38,14 @@ body.dashboard-shell .affiliey-earnings-track{background:#2d3036}
 .personal-goal-form{grid-template-columns:repeat(5,minmax(0,1fr));margin:8px 0 20px}.personal-goal-form label{min-width:0}.personal-goal-form button{align-self:end}@media(max-width:900px){.personal-goal-form{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.personal-goal-form{grid-template-columns:1fr}}
 
 .community-invite-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end;gap:12px;margin:20px 0 4px}.community-invite-form label{display:grid;gap:6px;color:#475467;font-size:.82rem;font-weight:650}.community-invite-form input,.community-invite-form select,.community-invite-form textarea{box-sizing:border-box;width:100%;padding:10px 12px;border:1px solid #d8dde5;border-radius:10px;background:#fff;color:#111827;font:inherit}.profile-group-member{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin:8px 0;background:#f8fafc;border:1px solid #edf0f4;border-radius:10px}.profile-group-member form{display:flex;gap:8px}.community-group-card>div{width:100%}.community-group-card form:not(.community-invite-form){margin:12px 0}.community-group-card h4{margin:16px 0 8px}.community-group-toggle{display:flex;justify-content:flex-end}@media(max-width:600px){.profile-group-member{align-items:flex-start;flex-direction:column}.profile-group-member form{width:100%;flex-wrap:wrap}.community-invite-form{grid-template-columns:1fr}}
+
+/* Keep the student earnings meter and environment switch in the same top-right location as Producer. */
+.affiliate-portal .affiliey-floating-tools{position:fixed;top:12px;right:clamp(20px,3vw,48px);z-index:75;padding:9px 14px;border:1px solid #2A2C31;border-radius:16px;background:rgb(17 18 20 / 94%);box-shadow:0 12px 34px rgb(0 0 0 / 24%);backdrop-filter:blur(16px)}
+.affiliate-portal .affiliey-account-tools{width:auto;flex-direction:row;align-items:center;gap:20px}
+.affiliate-portal .affiliey-earnings{width:min(430px,38vw)}
+.affiliate-portal .affiliey-earnings-value strong{color:#F9FAFB}
+.affiliate-portal .affiliey-earnings-value small{color:#9B9DA5}
+.affiliate-portal .affiliey-account-menu summary{color:#F9FAFB}
+.affiliate-portal .affiliey-account-name small{color:#FBBF24}
+.affiliate-portal .profile-page{margin-top:0;padding-top:70px}
+@media(max-width:760px){.affiliate-portal .affiliey-floating-tools{top:8px;right:8px;padding:4px 8px;border-radius:13px}.affiliate-portal .affiliey-account-tools{gap:8px}.affiliate-portal .affiliey-earnings{width:min(47vw,190px)}.affiliate-portal .affiliey-account-menu summary{min-height:38px}.affiliate-portal .affiliey-account-name{display:grid;max-width:52px;font-size:.57rem}.affiliate-portal .affiliey-account-name small{font-size:.46rem}.affiliate-portal .profile-page{padding-top:0;margin-top:24px}}
