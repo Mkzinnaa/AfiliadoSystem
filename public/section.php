@@ -40,10 +40,10 @@ $environment = $isStudent ? 'AMBIENTE DO ALUNO' : 'AMBIENTE DO PRODUTOR';
   <meta name="theme-color" content="#111827">
   <title><?= $escape($section['label']) ?> — AFFILIEY</title>
   <link rel="icon" href="/brand/affiliey-favicon.png">
-  <link rel="stylesheet" href="/assets/css/app-theme.css?v=3">
+  <link rel="stylesheet" href="/assets/css/app-theme.css?v=4">
   <link rel="stylesheet" href="/assets/css/brand.css?v=affiliey4">
   <link rel="stylesheet" href="/assets/css/workspace-premium.css?v=3">
-  <link rel="stylesheet" href="/assets/css/profile-environments.css?v=3">
+  <link rel="stylesheet" href="/assets/css/profile-environments.css?v=4">
   <link rel="stylesheet" href="/assets/css/sliding-pill-nav.css?v=2">
   <link rel="stylesheet" href="/assets/css/section-hub.css?v=1">
   <link rel="stylesheet" href="/assets/css/typography.css?v=1">
